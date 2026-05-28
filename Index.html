@@ -1,22 +1,164 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>二手市场</title>
+    <title>🎉 二手交易平台</title>
+    <link rel="stylesheet" href="css/index.css">
 </head>
+
 <body>
+    <!-- 頂部導覽列 -->
     <header>
-        <h1>二手市场</h1>
+        <div class="nav-container">
+            <a href="#" class="logo">🎉 二手交易平台</a>
+
+            <!-- 搜尋框 -->
+            <div class="search-bar">
+                <input type="text" placeholder="搜尋二手寶物...例如：iPhone、動漫周邊">
+                <button type="button">搜尋</button>
+            </div>
+
+            <!-- 右側選單 -->
+            <nav class="nav-menu">
+                <a href="#">我的收藏</a>
+                <button type="button" class="btn-login" id="loginBtn">登入 / 註冊</button>
+            </nav>
+        </div>
     </header>
+
+    <!-- 主要內容區 -->
     <main>
-        <section>
-            <h2>欢迎来到二手市场</h2>
-            <p>这里可以发布和查找二手商品信息。</p>
-        </section>
+        <!-- ✨ 新增：吸引人的主要核心區塊 (Hero Section) -->
+        <div class="hero-section">
+            <div class="hero-content">
+                <h1>斷捨離變現金！💰</h1>
+                <p>家裡用不到的二手寶物，在這裡都能找到下一個珍惜它的人。</p>
+                <!-- 立即上架按鈕移到這裡 -->
+                <a href="upload.html" class="btn-action-main">＋ 立即上架我的寶物</a>
+            </div>
+        </div>
+
+        <!-- 分類標籤列 -->
+        <div class="categories">
+            <a href="#" class="category-item active">✨ 全部商品</a>
+            <a href="#" class="category-item">💻 數位3C</a>
+            <a href="#" class="category-item">👕 流行服飾</a>
+            <a href="#" class="category-item">🎮 遊戲動漫</a>
+            <a href="#" class="category-item">🏠 居家生活</a>
+            <a href="#" class="category-item">📚 課本網路</a>
+        </div>
+
+        <!-- 商品推薦區塊 -->
+        <div class="section-title">
+            <h2>🔥 最新上架的寶物</h2>
+        </div>
+
+        <!-- 商品網格 -->
+        <div class="product-grid">
+
+            <!-- 商品卡片 1 -->
+            <div class="product-card">
+                <img src="https://via.placeholder.com/300x300/ff385c/ffffff?text=iPhone+13" alt="商品圖片"
+                    class="product-img">
+                <div class="product-info">
+                    <div class="product-title">九成新 iPhone 13 128G 藍色 功能皆正常 無傷</div>
+                    <div class="product-price">$12,500</div>
+                    <div class="product-footer">
+                        <span class="product-condition">95新</span>
+                        <span class="product-location">台北市</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 商品卡片 2 -->
+            <div class="product-card">
+                <img src="https://via.placeholder.com/300x300/ff385c/ffffff?text=Switch" alt="商品圖片" class="product-img">
+                <div class="product-info">
+                    <div class="product-title">Nintendo Switch 電力加強版 附兩個遊戲片（動森、瑪利歐賽車）</div>
+                    <div class="product-price">$5,500</div>
+                    <div class="product-footer">
+                        <span class="product-condition">二手</span>
+                        <span class="product-location">台中市</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 商品卡片 3 -->
+            <div class="product-card">
+                <img src="https://via.placeholder.com/300x300/ff385c/ffffff?text=Book" alt="商品圖片" class="product-img">
+                <div class="product-info">
+                    <div class="product-title">【大學課本】微積分 Calculus 經典原文書 第九版</div>
+                    <div class="product-price">$400</div>
+                    <div class="product-footer">
+                        <span class="product-condition">微劃記</span>
+                        <span class="product-location">台南市</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 商品卡片 4 -->
+            <div class="product-card">
+                <img src="https://via.placeholder.com/300x300/ff385c/ffffff?text=Jacket" alt="商品圖片" class="product-img">
+                <div class="product-info">
+                    <div class="product-title">古著工裝外套 寬鬆版型 男女皆可穿 僅試穿</div>
+                    <div class="product-price">$680</div>
+                    <div class="product-footer">
+                        <span class="product-condition">全新</span>
+                        <span class="product-location">高雄市</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </main>
+
+    <!-- 頁尾 -->
     <footer>
-        <p>&copy; 2026 二手市场</p>
+        <p>© 2026 二手交易平台版權所有</p>
     </footer>
+
+    <!-- 登入彈出視窗 -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeModal">&times;</span>
+            <h2>登入 / 註冊</h2>
+            <form>
+                <input type="text" placeholder="電子郵件或帳號" required>
+                <input type="password" placeholder="密碼" required>
+                <button type="submit" class="btn-submit-login">登入</button>
+            </form>
+            <div class="modal-footer">
+                <p>還沒有帳號？ <a href="#" style="color: #ff385c; font-weight: bold;">立即註冊</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 簡單的 JavaScript 來處理登入視窗的顯示/隱藏
+        const modal = document.getElementById("loginModal");
+        const btn = document.getElementById("loginBtn");
+        const span = document.getElementById("closeModal");
+
+        // 當點擊「登入」按鈕時，打開彈出視窗
+        btn.onclick = function () {
+            modal.style.display = "block";
+        }
+
+        // 當點擊「×」時，關閉彈出視窗
+        span.onclick = function () {
+            modal.style.display = "none";
+        }
+
+        // 當點擊彈出視窗外部時，關閉它
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
+
 </body>
+
 </html>
