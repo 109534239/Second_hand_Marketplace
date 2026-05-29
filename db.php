@@ -1,14 +1,14 @@
 <?php
 // db.php
-// PostgreSQL connection for the shared Render database.
+// PostgreSQL connection for your Render-hosted database.
 
 $host = 'dpg-d8budlbbc2fs738lur90-a.singapore-postgres.render.com';
 $port = '5432';
 $dbname = 'second_hand';
 $user = 'second_hand_user';
-$password = 'YOUR_DB_PASSWORD'; // <-- 請替換成實際的資料庫密碼
+$password = ''; // <-- 請替換成 Render 上顯示的正確密碼
 
-$dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
+$dsn = "pgsql:host=$host;port=$port;dbname=$dbname;sslmode=require";
 
 try {
     $pdo = new PDO($dsn, $user, $password, [
