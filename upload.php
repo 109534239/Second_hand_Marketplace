@@ -1,5 +1,11 @@
+<?php
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/login.php';
+
+?>
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,18 +13,12 @@
     <link rel="stylesheet" href="css/index.css">
     <link rel="stylesheet" href="css/upload.css">
 </head>
+
 <body>
+    <!-- 頂部導覽列 -->
+    <?php include 'header.php'; ?>
 
-    <header>
-        <div class="nav-container">
-            <a href="index.html" class="logo">🎉 二手交易平台</a>
-            <nav class="nav-menu">
-                <a href="index.html">回首頁</a>
-                <a href="#">賣家中心</a>
-            </nav>
-        </div>
-    </header>
-
+    <!-- 主要內容區 -->
     <main>
         <div class="upload-container">
             <div class="form-header">
@@ -95,7 +95,7 @@
         imageInput.addEventListener('change', function() {
             imagePreview.innerHTML = '';
             const files = Array.from(this.files);
-            
+
             files.slice(0, 5).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -109,4 +109,5 @@
         });
     </script>
 </body>
+
 </html>

@@ -1,0 +1,220 @@
+/* container 與通用設定繼承 sales 的美感 */
+.container {
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 30px;
+}
+
+.page-header h1 {
+    font-size: 28px;
+    color: #1e293b;
+}
+
+.page-header p {
+    color: #64748b;
+    margin-top: 5px;
+}
+
+/* 統計區塊 */
+.stats-summary {
+    display: flex;
+    gap: 15px;
+}
+
+.stat-item {
+    background: white;
+    padding: 15px 25px;
+    border-radius: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    border: 1px solid #f1f5f9;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #94a3b8;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 22px;
+    font-weight: 800;
+    color: #3b82f6;
+}
+
+/* 買家改用藍色調 */
+
+/* 篩選標籤 */
+.filter-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+.filter-tab {
+    padding: 10px 22px;
+    border: none;
+    background: #fff;
+    color: #64748b;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+    transition: 0.3s;
+}
+
+.filter-tab.active {
+    background: #3b82f6;
+    color: white;
+}
+
+/* 訂單卡片 */
+.record-card {
+    background: white;
+    border-radius: 24px;
+    padding: 25px;
+    margin-bottom: 20px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.03);
+}
+
+.record-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f8fafc;
+    padding-bottom: 20px;
+}
+
+.record-main {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 2;
+}
+
+.product-thumb {
+    width: 80px;
+    height: 80px;
+    background: #f1f5f9;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+}
+
+.order-id {
+    font-size: 12px;
+    color: #cbd5e1;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.product-name {
+    font-size: 18px;
+    color: #1e293b;
+    margin: 4px 0;
+    font-weight: 700;
+}
+
+.seller-info {
+    font-size: 14px;
+    color: #64748b;
+}
+
+.record-price {
+    flex: 1;
+    text-align: center;
+    border-left: 1px solid #f1f5f9;
+    border-right: 1px solid #f1f5f9;
+}
+
+.price-label {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.price-value {
+    display: block;
+    font-size: 20px;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.record-status {
+    flex: 1;
+    text-align: right;
+}
+
+/* 狀態顏色 */
+.status-tag {
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.status-unpaid {
+    background: #fef2f2;
+    color: #ef4444;
+}
+
+/* 待付款-紅色 */
+.status-shipping {
+    background: #eff6ff;
+    color: #3b82f6;
+}
+
+/* 運送中-藍色 */
+.status-completed {
+    background: #f0fdf4;
+    color: #22c55e;
+}
+
+/* 已完成-綠色 */
+
+/* 按鈕 */
+.record-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.btn-detail {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 10px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    color: #475569;
+}
+
+.btn-primary-sm {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-secondary-sm {
+    background: #fff;
+    border: 1px solid #3b82f6;
+    color: #3b82f6;
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
