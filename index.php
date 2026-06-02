@@ -33,6 +33,56 @@ if (empty($categories)) {
         ['category' => '收藏品、古董與藝術'],
     ];
 }
+$db = getDbConnection();
+
+// 1. 取得篩選參數
+$cat_id = isset($_GET['cat']) ? intval($_GET['cat']) : null;
+$search = isset($_GET['search']) ? trim($_GET['search']) : null;
+
+// 2. 建立基礎 SQL (關聯 item 與 category 資料表)
+// 假設 item 資料表有這些欄位：p_name, price, condition, location, img_url
+$sql = "SELECT i.*, c.category as category_name 
+        FROM public.item i
+        LEFT JOIN public.category c ON i.category_id = c.id
+        WHERE 1=1"; // 方便後面接 AND
+
+$params = [];
+
+// 3. 判斷是否有分類篩選
+if ($cat_id) {
+    $sql .= " AND i.category_id = :cat_id";
+    $params[':cat_id'] = $cat_id;
+}
+
+// 4. 判斷是否有搜尋關鍵字
+if ($search) {
+    $sql .= " AND (i.p_name ILIKE :search OR i.p_desc ILIKE :search)"; // ILIKE 是 PostgreSQL 不分大小寫搜尋
+    $params[':search'] = '%' . $search . '%';
+}
+
+$sql .= " ORDER BY i.id DESC"; // 最新上架排前面
+
+try {
+    $stmt_items = $db->prepare($sql);
+    $stmt_items->execute($params);
+    $products = $stmt_items->fetchAll();
+} catch (PDOException $e) {
+    error_log('Product query failed: ' . $e->getMessage());
+    $products = [];
+}
+
+// 找出當前選擇的分類名稱與圖示
+$current_cat_name = "";
+$current_cat_icon = "📂";
+if ($cat_id) {
+    foreach ($categories as $cat) {
+        if ($cat['id'] == $cat_id) {
+            $current_cat_name = $cat['category'];
+            $current_cat_icon = $iconMap[$current_cat_name] ?? '📂';
+            break;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -235,6 +285,26 @@ if (empty($categories)) {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
+        .auth-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .link-register {
+            color: #ff385c;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: underline;
+            transition: 0.3s;
+        }
+
+        .link-register:hover {
+            color: #e33150;
+            text-shadow: 0 0 10px rgba(255, 56, 92, 0.1);
+        }
+
         /* --- 表單輸入 --- */
         .modal-content input[type="text"],
         .modal-content input[type="password"],
@@ -337,88 +407,62 @@ if (empty($categories)) {
         <div class="control-panel">
             <div class="main-search-wrapper">
                 <div class="search-combined-bar">
-                    <select id="category-dropdown" class="category-select-inline" onchange="location = this.value;">
-                        <option value="">📂 全部商品</option>
-                        <?php foreach ($categories as $category):
-                            $name = $category['category'] ?? '';
-                            $icon = $iconMap[$name] ?? '📦';
-                        ?>
+                    <select id="category-dropdown" class="category-select-inline" onchange="handleCategoryChange(this)">
+                        <option value="" selected>📂 全部商品</option>
+                        <?php foreach ($categories as $category): ?>
                             <option value="?cat=<?= $category['id'] ?>">
-                                <?= htmlspecialchars($icon . ' ' . $name, ENT_QUOTES, 'UTF-8') ?>
+                                <?= htmlspecialchars($category['category'], ENT_QUOTES, 'UTF-8') ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
 
                     <div class="search-divider"></div>
 
-                    <input type="text" class="search-input-main" placeholder="搜尋二手寶物...例如：iPhone、Switch">
+                    <input type="text" id="mainSearchInput" class="search-input-main" placeholder="搜尋二手寶物...">
 
-                    <button type="button" class="search-btn-main">搜尋</button>
+                    <button type="button" class="search-btn-main" onclick="executeSearch()">搜尋</button>
                 </div>
             </div>
         </div>
 
         <!-- 商品推薦區塊 -->
         <div class="section-title">
-            <h2>🔥 最新上架的寶物</h2>
+            <h2>
+                <?php
+                if ($search) {
+                    echo "🔍 搜尋「" . htmlspecialchars($search) . "」的結果";
+                } elseif ($cat_id && !empty($current_cat_name)) {
+                    echo $current_cat_icon . " 正在查看「" . htmlspecialchars($current_cat_name) . "」";
+                } else {
+                    echo "🔥 最新上架的寶物";
+                }
+                ?>
+            </h2>
+            <div class="section-underline"></div>
         </div>
 
-        <!-- 商品網格 -->
         <div class="product-grid">
-
-            <!-- 商品卡片 1 -->
-            <div class="product-card">
-                <img src="https://via.placeholder.com/300x300/ff385c/ffffff?text=iPhone+13" alt="商品圖片"
-                    class="product-img">
-                <div class="product-info">
-                    <div class="product-title">九成新 iPhone 13 128G 藍色 功能皆正常 無傷</div>
-                    <div class="product-price">$12,500</div>
-                    <div class="product-footer">
-                        <span class="product-condition">95新</span>
-                        <span class="product-location">台北市</span>
-                    </div>
+            <?php if (empty($products)): ?>
+                <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #888;">
+                    <p>找不到對應的寶物，換個關鍵字試試看吧！</p>
                 </div>
-            </div>
+            <?php else: ?>
+                <?php foreach ($products as $p): ?>
+                    <div class="product-card">
+                        <img src="<?= !empty($p['img_url']) ? htmlspecialchars($p['img_url']) : 'https://via.placeholder.com/300x300/f1f5f9/64748b?text=無圖片' ?>"
+                            alt="商品圖片" class="product-img">
 
-            <!-- 商品卡片 2 -->
-            <div class="product-card">
-                <img src="https://via.placeholder.com/300x300/ff385c/ffffff?text=Switch" alt="商品圖片" class="product-img">
-                <div class="product-info">
-                    <div class="product-title">Nintendo Switch 電力加強版 附兩個遊戲片（動森、瑪利歐賽車）</div>
-                    <div class="product-price">$5,500</div>
-                    <div class="product-footer">
-                        <span class="product-condition">二手</span>
-                        <span class="product-location">台中市</span>
+                        <div class="product-info">
+                            <div class="product-title"><?= htmlspecialchars($p['p_name']) ?></div>
+                            <div class="product-price">$<?= number_format($p['price']) ?></div>
+                            <div class="product-footer">
+                                <span class="product-condition"><?= htmlspecialchars($p['condition'] ?? '二手') ?></span>
+                                <span class="product-location"><?= htmlspecialchars($p['location'] ?? '台灣') ?></span>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- 商品卡片 3 -->
-            <div class="product-card">
-                <img src="https://via.placeholder.com/300x300/ff385c/ffffff?text=Book" alt="商品圖片" class="product-img">
-                <div class="product-info">
-                    <div class="product-title">【大學課本】微積分 Calculus 經典原文書 第九版</div>
-                    <div class="product-price">$400</div>
-                    <div class="product-footer">
-                        <span class="product-condition">微劃記</span>
-                        <span class="product-location">台南市</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 商品卡片 4 -->
-            <div class="product-card">
-                <img src="https://via.placeholder.com/300x300/ff385c/ffffff?text=Jacket" alt="商品圖片" class="product-img">
-                <div class="product-info">
-                    <div class="product-title">古著工裝外套 寬鬆版型 男女皆可穿 僅試穿</div>
-                    <div class="product-price">$680</div>
-                    <div class="product-footer">
-                        <span class="product-condition">全新</span>
-                        <span class="product-location">高雄市</span>
-                    </div>
-                </div>
-            </div>
-
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </main>
 
@@ -433,34 +477,45 @@ if (empty($categories)) {
             <span class="close-modal" id="closeModal">&times;</span>
 
             <div class="auth-tabs">
-                <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">登入</button>
-                <button class="auth-tab" id="tab-register" onclick="switchTab('register')">註冊</button>
+                <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">買/賣家登入</button>
+                <button class="auth-tab" id="tab-admin" onclick="switchTab('admin')">管理員登入</button>
             </div>
 
             <form id="loginForm" action="login.php" method="POST">
                 <input type="hidden" name="action" value="login">
-                <input type="text" name="account" placeholder="帳號" required>
+                <input type="text" name="account" placeholder="買/賣家帳號" required>
                 <input type="password" name="password" placeholder="密碼" required>
                 <button type="submit" class="btn-submit-login">立即登入</button>
+                <div class="auth-footer">
+                    還沒有帳號嗎？ <span class="link-register" onclick="switchTab('register')">立即加入會員</span>
+                </div>
+
+            </form>
+
+            <form id="adminLoginForm" action="login.php" method="POST" style="display:none;">
+                <input type="hidden" name="action" value="login">
+                <input type="text" name="account" placeholder="管理員帳號" required>
+                <input type="password" name="password" placeholder="管理員密碼" required>
+                <button type="submit" class="btn-submit-login" style="background: linear-gradient(135deg, #475569, #1e293b);">管理員驗證</button>
             </form>
 
             <form id="registerForm" action="login.php" method="POST" style="display:none;">
                 <input type="hidden" name="action" value="register">
-                <input type="text" name="account" placeholder="帳號" required>
-                <input type="password" name="password" placeholder="密碼" required>
+                <input type="text" name="account" placeholder="設定帳號" required>
+                <input type="password" name="password" placeholder="設定密碼" required>
                 <input type="text" name="name" placeholder="真實姓名" required>
-                <input type="email" name="email" placeholder="電子郵件" required>
-                <input type="tel" name="phoneno" placeholder="電話號碼" required>
+
+                <input type="email" name="email" placeholder="電子郵件 (example@mail.com)" required>
+
+                <input type="tel" name="phoneno" placeholder="手機號碼 (0912345678)"
+                    pattern="09[0-9]{8}" title="請輸入正確的 10 位手機號碼，例如: 0912345678" required>
 
                 <div class="role-selection">
                     <p>註冊身份</p>
                     <div class="role-group">
-                        <label class="role-label">
-                            <input type="radio" name="role" value="1" checked> 🙋 我是買家
-                        </label>
-                        <label class="role-label">
-                            <input type="radio" name="role" value="2"> 🏪 我是賣家
-                        </label>
+                        <label class="role-label"><input type="radio" name="role" value="1" checked> 買家</label>
+                        <label class="role-label"><input type="radio" name="role" value="2"> 賣家</label>
+                        <!-- <label class="role-label"><input type="radio" name="role" value="3"> 管理員</label> -->
                     </div>
                 </div>
 
@@ -470,7 +525,34 @@ if (empty($categories)) {
     </div>
 
     <script>
-        // 控制彈窗顯示與關閉
+        function handleCategoryChange(selectElement) {
+            const targetUrl = selectElement.value;
+            if (targetUrl !== "") {
+                window.location.href = targetUrl;
+            }
+        }
+
+        // 頁面載入完成後執行
+        window.addEventListener('DOMContentLoaded', (event) => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const categoryDropdown = document.getElementById('category-dropdown');
+
+            // 如果網址裡有 cat 參數
+            if (urlParams.has('cat')) {
+                // 等待 1 秒後將下拉選單歸位到 "全部商品" (index 0)
+                setTimeout(() => {
+                    if (categoryDropdown) categoryDropdown.selectedIndex = 0;
+                }, 1000);
+            }
+        });
+
+        function executeSearch() {
+            const keyword = document.getElementById('mainSearchInput').value.trim();
+            if (keyword !== "") {
+                window.location.href = "index.php?search=" + encodeURIComponent(keyword);
+            }
+        }
+
         const modal = document.getElementById("loginModal");
         const btn = document.getElementById("loginBtn");
         const span = document.getElementById("closeModal");
@@ -480,36 +562,46 @@ if (empty($categories)) {
                 modal.style.display = "block";
             }
         }
-
         span.onclick = function() {
             modal.style.display = "none";
         }
-
         window.onclick = function(event) {
             if (event.target == modal) {
                 modal.style.display = "none";
             }
         }
 
-        // 切換 登入/註冊 頁籤
         function switchTab(type) {
             const loginForm = document.getElementById('loginForm');
+            const adminForm = document.getElementById('adminLoginForm');
             const regForm = document.getElementById('registerForm');
-            const tabLogin = document.getElementById('tab-login');
-            const tabReg = document.getElementById('tab-register');
+
+            const tabs = document.querySelectorAll('.auth-tab');
+            tabs.forEach(t => t.classList.remove('active'));
+
+            // 先隱藏所有表單
+            loginForm.style.display = 'none';
+            adminForm.style.display = 'none';
+            regForm.style.display = 'none';
 
             if (type === 'login') {
                 loginForm.style.display = 'block';
-                regForm.style.display = 'none';
-                tabLogin.classList.add('active');
-                tabReg.classList.remove('active');
+                document.getElementById('tab-login').classList.add('active');
+            } else if (type === 'admin') {
+                adminForm.style.display = 'block';
+                document.getElementById('tab-admin').classList.add('active');
             } else {
-                loginForm.style.display = 'none';
                 regForm.style.display = 'block';
-                tabReg.classList.add('active');
-                tabLogin.classList.remove('active');
+                document.getElementById('tab-register').classList.add('active');
             }
         }
+
+        // --- 自動觸發彈窗與訊息 ---
+        <?php if (!empty($auth_message)): ?>
+            alert("<?php echo $auth_message; ?>");
+            modal.style.display = "block";
+            switchTab("<?php echo $target_tab; ?>");
+        <?php endif; ?>
     </script>
 </body>
 
