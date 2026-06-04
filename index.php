@@ -220,9 +220,9 @@ if ($cat_id) {
 
         .modal-content {
             background-color: white;
-            margin: 5% auto;
+            margin: 2% auto;
             /* 稍微往上一點 */
-            padding: 40px;
+            padding: 20px;
             border-radius: 30px;
             width: 520px;
             /* 加寬處理，解決跑版 */
@@ -572,36 +572,54 @@ if ($cat_id) {
         }
 
         function switchTab(type) {
-            const loginForm = document.getElementById('loginForm');
-            const adminForm = document.getElementById('adminLoginForm');
-            const regForm = document.getElementById('registerForm');
+    const loginForm = document.getElementById('loginForm');
+    const adminForm = document.getElementById('adminLoginForm');
+    const regForm = document.getElementById('registerForm');
 
-            const tabs = document.querySelectorAll('.auth-tab');
-            tabs.forEach(t => t.classList.remove('active'));
+    const tabs = document.querySelectorAll('.auth-tab');
+    tabs.forEach(t => t.classList.remove('active'));
 
-            // 先隱藏所有表單
-            loginForm.style.display = 'none';
-            adminForm.style.display = 'none';
-            regForm.style.display = 'none';
+    // 先隱藏所有表單
+    loginForm.style.display = 'none';
+    adminForm.style.display = 'none';
+    regForm.style.display = 'none';
 
-            if (type === 'login') {
-                loginForm.style.display = 'block';
-                document.getElementById('tab-login').classList.add('active');
-            } else if (type === 'admin') {
-                adminForm.style.display = 'block';
-                document.getElementById('tab-admin').classList.add('active');
-            } else {
-                regForm.style.display = 'block';
-                document.getElementById('tab-register').classList.add('active');
-            }
-        }
+    if (type === 'login') {
+        loginForm.style.display = 'block';
+        const tab = document.getElementById('tab-login');
+        if(tab) tab.classList.add('active');
+    } else if (type === 'admin') {
+        adminForm.style.display = 'block';
+        const tab = document.getElementById('tab-admin');
+        if(tab) tab.classList.add('active');
+    } else if (type === 'register') { // 確保型態正確
+        regForm.style.display = 'block';
+        // 如果你有給立即加入會員的按鈕或標籤加 id="tab-register" 再加這行，若沒有則免
+        const tab = document.getElementById('tab-register');
+        if(tab) tab.classList.add('active');
+    }
+}
 
-        // --- 自動觸發彈窗與訊息 ---
-        <?php if (!empty($auth_message)): ?>
-            alert("<?php echo $auth_message; ?>");
+// --- 自動觸發彈窗與訊息 (改為讀取 SESSION) ---
+<?php if (!empty($_SESSION['auth_message'])): ?>
+    // 確保在 DOM 載入後執行，避免抓不到 modal 元素
+    window.addEventListener('DOMContentLoaded', (event) => {
+        alert("<?php echo $_SESSION['auth_message']; ?>");
+        
+        const modal = document.getElementById("loginModal");
+        if (modal) {
             modal.style.display = "block";
-            switchTab("<?php echo $target_tab; ?>");
-        <?php endif; ?>
+        }
+        
+        switchTab("<?php echo $_SESSION['target_tab']; ?>");
+    });
+    
+    <?php 
+    // 顯示完後，立即把訊息從 Session 清除，避免重整網頁重覆跳出
+    unset($_SESSION['auth_message']);
+    unset($_SESSION['target_tab']);
+    ?>
+<?php endif; ?>
     </script>
 </body>
 
