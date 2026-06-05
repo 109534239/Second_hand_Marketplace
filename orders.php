@@ -2,9 +2,8 @@
 require_once __DIR__ . '/db.php';
 session_start();
 
-// 權限檢查：沒登入或不是買家 (role=1) 就跳轉
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 1) {
-    header("Location: index.php");
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php"); // 沒登入的話，直接踢去登入頁
     exit;
 }
 
