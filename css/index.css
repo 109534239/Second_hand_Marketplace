@@ -1,149 +1,159 @@
-    /* ==========================================================================
-   ✨ 全域樣式重設
+/* ==========================================================================
+   🧱 1. 全域樣式重設 (確保與 header.php 共存)
    ========================================================================== */
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: 'Poppins', 'Segoe UI', 'Heiti TC', 'Microsoft JhengHei', sans-serif;
-    }
+body {
+    background-color: #f7f9fc !important;
+    /* 強制背景色 */
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1e293b;
+}
 
-    body {
-        background-color: #f8f9fc;
-        color: #2e3b4e;
-        line-height: 1.6;
-    }
-
-    a {
-        text-decoration: none;
-        color: inherit;
-        transition: 0.3s;
-    }
-
-    /* 商品網格 */
-    .product-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 25px;
-    }
-
-    /* 商品卡片 */
-    .product-card {
-        background-color: white;
-        border-radius: 20px;
-        overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        border: 1px solid rgba(0, 0, 0, 0.03);
-    }
-
-    .product-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-    }
-
-    .product-img {
-        width: 100%;
-        height: 240px;
-        object-fit: cover;
-    }
-
-    .product-info {
-        padding: 20px;
-    }
-
-    .product-title {
-        font-size: 16px;
-        font-weight: 700;
-        margin-bottom: 12px;
-        color: #2d3748;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        line-height: 1.5;
-        height: 48px;
-    }
-
-    .product-price {
-        font-size: 22px;
-        color: #ff385c;
-        font-weight: 800;
-        margin-bottom: 15px;
-    }
-
-    .product-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 13px;
-        color: #a0aec0;
-        padding-top: 15px;
-        border-top: 1px solid #f7fafc;
-    }
-
-    .product-condition {
-        background-color: #fff5f7;
-        color: #ff385c;
-        padding: 4px 10px;
-        border-radius: 8px;
-        font-weight: 700;
-    }
-
-    /* ==========================================================================
-   頁尾 (Footer)
+/* ==========================================================================
+   ✨ 2. 滿版置中容器 (扣除 Header 高度)
    ========================================================================== */
-    footer {
-        background-color: #1e293b;
-        color: #94a3b8;
-        text-align: center;
-        padding: 40px;
-        margin-top: 80px;
-        font-size: 14px;
-    }
+.login-page-container {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    min-height: calc(100vh - 70px) !important;
+    /* 動態扣除頂部 header 高度 */
+    padding: 40px 20px;
+    box-sizing: border-box;
+    background: radial-gradient(circle at 10% 20%, rgba(255, 56, 92, 0.04) 0%, rgba(247, 249, 252, 1) 90%) !important;
+}
 
-    /* ==========================================================================
-   RWD 手機版優化
+/* ==========================================================================
+   卡片主體與輕奢陰影
    ========================================================================== */
-    @media (max-width: 768px) {
-        .nav-container {
-            padding: 15px 20px;
-        }
+.login-card {
+    background-color: #ffffff !important;
+    padding: 45px 40px !important;
+    border-radius: 24px !important;
+    width: 100% !important;
+    max-width: 460px !important;
+    box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.08),
+        0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+    box-sizing: border-box !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+}
 
-        .search-combined-bar {
-            flex-direction: column;
-            height: auto;
-            border-radius: 20px;
-            padding: 15px;
-        }
+.login-card:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 30px 50px -20px rgba(15, 23, 42, 0.15),
+        0 0 0 1px rgba(255, 56, 92, 0.1) !important;
+}
 
-        .category-select-inline {
-            width: 100%;
-            padding: 10px;
-            text-align: center;
-        }
+/* ==========================================================================
+   🎫 現代膠囊式分頁選單
+   ========================================================================== */
+.auth-tabs {
+    display: flex !important;
+    background: #f1f5f9 !important;
+    padding: 5px !important;
+    border-radius: 14px !important;
+    margin-bottom: 35px !important;
+}
 
-        .search-divider {
-            width: 100%;
-            height: 1px;
-            margin: 10px 0;
-        }
+.auth-tab {
+    flex: 1 !important;
+    border: none !important;
+    padding: 12px 10px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    background: transparent !important;
+    color: #64748b !important;
+    transition: all 0.25s ease !important;
+    border-radius: 10px !important;
+    text-align: center !important;
+}
 
-        .search-input-main {
-            width: 100%;
-            padding: 15px;
-            text-align: center;
-        }
+.auth-tab.active {
+    background: #ffffff !important;
+    color: #ff385c !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
+}
 
-        .search-btn-main {
-            width: 100%;
-            padding: 15px;
-            justify-content: center;
-        }
+/* ==========================================================================
+   ✍️ 表單輸入框控制
+   ========================================================================== */
+.input-group {
+    position: relative !important;
+    margin-bottom: 18px !important;
+    width: 100% !important;
+}
 
-        .modal-content {
-            width: 90%;
-            margin: 20% auto;
-            padding: 30px 20px;
-        }
-    }
+.login-card input[type="text"],
+.login-card input[type="password"],
+.login-card input[type="email"],
+.login-card input[type="tel"] {
+    width: 100% !important;
+    padding: 14px 16px !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    outline: none !important;
+    font-size: 14.5px !important;
+    background: #f8fafc !important;
+    color: #1e293b !important;
+    transition: all 0.2s ease !important;
+    box-sizing: border-box !important;
+}
+
+.login-card input::placeholder {
+    color: #94a3b8 !important;
+}
+
+.login-card input:focus {
+    border-color: #ff385c !important;
+    background: #ffffff !important;
+    box-shadow: 0 0 0 4px rgba(255, 56, 92, 0.1) !important;
+}
+
+/* ==========================================================================
+   🎯 時尚桃紅漸層送出按鈕
+   ========================================================================== */
+.btn-submit-login {
+    width: 100% !important;
+    padding: 15px !important;
+    background: linear-gradient(135deg, #ff385c 0%, #ff6040 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    font-size: 15px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    margin-top: 10px !important;
+    box-shadow: 0 4px 12px rgba(255, 56, 92, 0.2) !important;
+}
+
+.btn-submit-login:hover {
+    background: linear-gradient(135deg, #f42c50 0%, #f44e2b 100%) !important;
+    box-shadow: 0 6px 20px rgba(255, 56, 92, 0.35) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ==========================================================================
+   📋 頁尾切換文字
+   ========================================================================== */
+.auth-footer {
+    text-align: center !important;
+    margin-top: 25px !important;
+    font-size: 13.5px !important;
+    color: #64748b !important;
+}
+
+.link-register {
+    color: #ff385c !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    margin-left: 3px !important;
+}
+
+.link-register:hover {
+    color: #e31c5f !important;
+    text-decoration: underline !important;
+}

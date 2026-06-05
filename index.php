@@ -1,88 +1,77 @@
 <?php
 require_once __DIR__ . '/db.php';
 session_start();
+$db = getDbConnection();
 
-// 💡 關鍵修正：如果沒有登入（Session 沒東西），就強制跳轉到登入頁，不要留在本頁
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+// 如果已經登入過，直接打開 frontpage.php 就該自動去首頁
+if (isset($_SESSION['user_id'])) {
+    header("Location: frontpage.php");
     exit;
 }
 
-$db = getDbConnection();
+$display_tab = isset($_SESSION['target_tab']) ? $_SESSION['target_tab'] : 'index';
+$alert_message = '';
 
-$iconMap = [
-    '時尚服飾與精品' => '👗',
-    '3D數位與電子產品' => '💻',
-    '遊戲與動漫週邊' => '🎮',
-    '書籍、音樂與影音娛樂' => '📚',
-    '居家生活與家電' => '🏠',
-    '運動、戶外與交通工具' => '🚴',
-    '母嬰與兒童用品' => '🧸',
-    '收藏品、古董與藝術' => '🎨',
-];
-
-try {
-    $stmt = $db->query('SELECT id, category FROM public.category ORDER BY id');
-    $categories = $stmt->fetchAll();
-} catch (PDOException $e) {
-    error_log('Category query failed: ' . $e->getMessage());
-    $categories = [];
+if (!empty($_SESSION['auth_message'])) {
+    $alert_message = $_SESSION['auth_message'];
+    unset($_SESSION['auth_message']);
+    unset($_SESSION['target_tab']);
 }
 
-if (empty($categories)) {
-    $categories = [
-        ['category' => '時尚服飾與精品'],
-        ['category' => '3D數位與電子產品'],
-        ['category' => '遊戲與動漫週邊'],
-        ['category' => '書籍、音樂與影音娛樂'],
-        ['category' => '居家生活與家電'],
-        ['category' => '運動、戶外與交通工具'],
-        ['category' => '母嬰與兒童用品'],
-        ['category' => '收藏品、古董與藝術'],
-    ];
-}
+if (isset($_POST['action'])) {
+    if ($_POST['action'] === 'index') {
+        $account = $_POST['account'];
+        $password = $_POST['password'];
+        $stmt = $db->prepare("SELECT * FROM \"User\" WHERE account = ?");
+        $stmt->execute([$account]);
+        $user = $stmt->fetch();
 
-// 1. 取得篩選參數
-$cat_id = isset($_GET['cat']) ? intval($_GET['cat']) : null;
-$search = isset($_GET['search']) ? trim($_GET['search']) : null;
+        if ($user && password_verify($password, $user['password'])) {
+            $_SESSION['user_id'] = $user['account'];
+            $_SESSION['user_name'] = $user['name'];
+            header("Location: frontpage.php");
+            exit;
+        } else {
+            $_SESSION['auth_message'] = "帳號或密碼錯誤";
+            $_SESSION['target_tab'] = "index";
+            header("Location: index.php");
+            exit;
+        }
+    }
 
-// 2. 建立基礎 SQL
-$sql = "SELECT i.*, c.category as category_name 
-        FROM public.item i
-        LEFT JOIN public.category c ON i.category_id = c.id
-        WHERE 1=1";
+    if ($_POST['action'] === 'register') {
+        $account  = $_POST['account'];
+        $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        $name     = $_POST['name'];
+        $phoneno  = $_POST['phoneno'];
+        $email    = $_POST['email'];
 
-$params = [];
+        // 1. 檢查帳號是否重複
+        $checkStmt = $db->prepare("SELECT COUNT(*) FROM \"User\" WHERE account = ?");
+        $checkStmt->execute([$account]);
+        $count = $checkStmt->fetchColumn();
 
-if ($cat_id) {
-    $sql .= " AND i.category_id = :cat_id";
-    $params[':cat_id'] = $cat_id;
-}
+        if ($count > 0) {
+            $_SESSION['auth_message'] = "註冊失敗：此帳號已存在！";
+            $_SESSION['target_tab'] = "register";
+            header("Location: index.php");
+            exit;
+        }
 
-if ($search) {
-    $sql .= " AND (i.p_name ILIKE :search OR i.p_desc ILIKE :search)";
-    $params[':search'] = '%' . $search . '%';
-}
+        // 2. 進行註冊
+        try {
+            $sql = "INSERT INTO \"User\" (account, password, name, role, phoneno, email) VALUES (?, ?, ?, 1, ?, ?)";
+            $db->prepare($sql)->execute([$account, $password, $name, $phoneno, $email]);
 
-$sql .= " ORDER BY i.id DESC";
-
-try {
-    $stmt_items = $db->prepare($sql);
-    $stmt_items->execute($params);
-    $products = $stmt_items->fetchAll();
-} catch (PDOException $e) {
-    error_log('Product query failed: ' . $e->getMessage());
-    $products = [];
-}
-
-$current_cat_name = "";
-$current_cat_icon = "📂";
-if ($cat_id) {
-    foreach ($categories as $cat) {
-        if ($cat['id'] == $cat_id) {
-            $current_cat_name = $cat['category'];
-            $current_cat_icon = $iconMap[$current_cat_name] ?? '📂';
-            break;
+            $_SESSION['auth_message'] = "註冊成功，請登入！";
+            $_SESSION['target_tab'] = "index";
+            header("Location: index.php");
+            exit;
+        } catch (Exception $e) {
+            $_SESSION['auth_message'] = "註冊失敗，系統伺服器錯誤";
+            $_SESSION['target_tab'] = "register";
+            header("Location: index.php");
+            exit;
         }
     }
 }
@@ -93,102 +82,146 @@ if ($cat_id) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎉 二手交易平台</title>
-    <link rel="stylesheet" href="css/index.css">
+    <title>歡迎來到二手交易平台</title>
+    <!-- <link rel="stylesheet" href="css/index.css"> -->
     <style>
-        main {
-            max-width: 1400px;
-            margin: 30px auto;
-            padding: 0 30px;
+        body {
+            background-color: #f7f9fc !important;
+            /* 強制背景色 */
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #1e293b;
         }
 
-        .main-search-wrapper {
-            margin: 40px 0 50px 0;
-            display: flex;
-            justify-content: center;
+        .login-page-container {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            min-height: calc(100vh - 70px) !important;
+            /* 動態扣除頂部 header 高度 */
+            padding: 40px 20px;
+            box-sizing: border-box;
+            background: radial-gradient(circle at 10% 20%, rgba(255, 56, 92, 0.04) 0%, rgba(247, 249, 252, 1) 90%) !important;
         }
 
-        .control-panel {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 60px;
+        .login-card {
+            background-color: #ffffff !important;
+            padding: 45px 40px !important;
+            border-radius: 24px !important;
+            width: 100% !important;
+            max-width: 460px !important;
+            box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.08),
+                0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+            box-sizing: border-box !important;
+            transition: transform 0.3s ease, box-shadow 0.3s ease !important;
         }
 
-        .search-combined-bar {
-            display: flex;
-            align-items: center;
-            background: white;
-            width: 100vw;
-            max-width: 800px;
-            height: 60px;
-            border-radius: 15px;
-            padding: 0 5px 0 0;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-            border: 1px solid #e2e8f0;
+        .login-card:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 30px 50px -20px rgba(15, 23, 42, 0.15),
+                0 0 0 1px rgba(255, 56, 92, 0.1) !important;
         }
 
-        .category-select-inline {
-            border: none;
-            outline: none;
-            padding: 0 15px;
-            font-size: 15px;
-            font-weight: 600;
-            color: #2d3748;
-            background: transparent;
-            cursor: pointer;
-            width: 180px;
-            height: 100%;
+        .auth-tabs {
+            display: flex !important;
+            background: #f1f5f9 !important;
+            padding: 5px !important;
+            border-radius: 14px !important;
+            margin-bottom: 35px !important;
         }
 
-        .search-divider {
-            width: 1px;
-            height: 24px;
-            background-color: #edf2f7;
+        .auth-tab {
+            flex: 1 !important;
+            border: none !important;
+            padding: 12px 10px !important;
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+            background: transparent !important;
+            color: #64748b !important;
+            transition: all 0.25s ease !important;
+            border-radius: 10px !important;
+            text-align: center !important;
         }
 
-        .search-input-main {
-            flex: 1;
-            border: none;
-            outline: none;
-            padding: 0 20px;
-            font-size: 16px;
-            background: transparent;
+        .auth-tab.active {
+            background: #ffffff !important;
+            color: #ff385c !important;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
         }
 
-        .search-btn-main {
-            background: #ff385c;
-            color: white;
-            border: none;
-            padding: 0 30px;
-            height: 50px;
-            margin: 5px;
-            border-radius: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: 0.2s;
+        .input-group {
+            position: relative !important;
+            margin-bottom: 18px !important;
+            width: 100% !important;
         }
 
-        .search-btn-main:hover {
-            background: #e31c5f;
+        .login-card input[type="text"],
+        .login-card input[type="password"],
+        .login-card input[type="email"],
+        .login-card input[type="tel"] {
+            width: 100% !important;
+            padding: 14px 16px !important;
+            border: 1.5px solid #e2e8f0 !important;
+            border-radius: 12px !important;
+            outline: none !important;
+            font-size: 14.5px !important;
+            background: #f8fafc !important;
+            color: #1e293b !important;
+            transition: all 0.2s ease !important;
+            box-sizing: border-box !important;
         }
 
-        .section-header {
-            margin-bottom: 30px;
-            text-align: left;
+        .login-card input::placeholder {
+            color: #94a3b8 !important;
         }
 
-        .section-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: #1a202c;
-            margin-bottom: 8px;
+        .login-card input:focus {
+            border-color: #ff385c !important;
+            background: #ffffff !important;
+            box-shadow: 0 0 0 4px rgba(255, 56, 92, 0.1) !important;
         }
 
-        .section-underline {
-            width: 50px;
-            height: 4px;
-            background: #ff385c;
-            border-radius: 2px;
+        .btn-submit-login {
+            width: 100% !important;
+            padding: 15px !important;
+            background: linear-gradient(135deg, #ff385c 0%, #ff6040 100%) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 12px !important;
+            font-weight: 700 !important;
+            font-size: 15px !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            margin-top: 10px !important;
+            box-shadow: 0 4px 12px rgba(255, 56, 92, 0.2) !important;
+        }
+
+        .btn-submit-login:hover {
+            background: linear-gradient(135deg, #f42c50 0%, #f44e2b 100%) !important;
+            box-shadow: 0 6px 20px rgba(255, 56, 92, 0.35) !important;
+            transform: translateY(-1px) !important;
+        }
+
+        .auth-footer {
+            text-align: center !important;
+            margin-top: 25px !important;
+            font-size: 13.5px !important;
+            color: #64748b !important;
+        }
+
+        .link-register {
+            color: #ff385c !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+            text-decoration: none !important;
+            margin-left: 3px !important;
+        }
+
+        .link-register:hover {
+            color: #e31c5f !important;
+            text-decoration: underline !important;
         }
     </style>
 </head>
@@ -196,97 +229,82 @@ if ($cat_id) {
 <body>
     <?php include 'header.php'; ?>
 
-    <main>
-        <div class="control-panel">
-            <div class="main-search-wrapper">
-                <div class="search-combined-bar">
-                    <select id="category-dropdown" class="category-select-inline" onchange="handleCategoryChange(this)">
-                        <option value="" selected>📂 全部商品</option>
-                        <?php foreach ($categories as $category): ?>
-                            <option value="?cat=<?= $category['id'] ?>">
-                                <?= htmlspecialchars($category['category'], ENT_QUOTES, 'UTF-8') ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+    <div class="login-page-container">
+        <div class="login-card">
 
-                    <div class="search-divider"></div>
-
-                    <input type="text" id="mainSearchInput" class="search-input-main" placeholder="搜尋二手寶物...">
-
-                    <button type="button" class="search-btn-main" onclick="executeSearch()">搜尋</button>
-                </div>
+            <div class="auth-tabs">
+                <button class="auth-tab" id="tab-login" onclick="switchTab('index')">會員登入</button>
+                <button class="auth-tab" id="tab-register" onclick="switchTab('register')">加入會員</button>
             </div>
-        </div>
 
-        <div class="section-title">
-            <h2>
-                <?php
-                if ($search) {
-                    echo "🔍 搜尋「" . htmlspecialchars($search) . "」的結果";
-                } elseif ($cat_id && !empty($current_cat_name)) {
-                    echo $current_cat_icon . " 正在查看「" . htmlspecialchars($current_cat_name) . "」";
-                } else {
-                    echo "🔥 最新上架的寶物";
-                }
-                ?>
-            </h2>
-            <div class="section-underline"></div>
-        </div>
-
-        <div class="product-grid">
-            <?php if (empty($products)): ?>
-                <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #888;">
-                    <p>找不到對應的寶物，換個關鍵字試試看吧！</p>
+            <form id="loginForm" action="index.php" method="POST" style="display:none;">
+                <input type="hidden" name="action" value="index">
+                <div class="input-group">
+                    <input type="text" name="account" placeholder="會員帳號" required>
                 </div>
-            <?php else: ?>
-                <?php foreach ($products as $p): ?>
-                    <div class="product-card">
-                        <img src="<?= !empty($p['img_url']) ? htmlspecialchars($p['img_url']) : 'https://via.placeholder.com/300x300/f1f5f9/64748b?text=無圖片' ?>"
-                            alt="商品圖片" class="product-img">
+                <div class="input-group">
+                    <input type="password" name="password" placeholder="密碼" required>
+                </div>
+                <button type="submit" class="btn-submit-login">立即登入</button>
+                <div class="auth-footer">
+                    還沒有帳號嗎？ <span class="link-register" onclick="switchTab('register')">立即加入會員</span>
+                </div>
+            </form>
 
-                        <div class="product-info">
-                            <div class="product-title"><?= htmlspecialchars($p['p_name']) ?></div>
-                            <div class="product-price">$<?= number_format($p['price']) ?></div>
-                            <div class="product-footer">
-                                <span class="product-condition"><?= htmlspecialchars($p['condition'] ?? '二手') ?></span>
-                                <span class="product-location"><?= htmlspecialchars($p['location'] ?? '台灣') ?></span>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+            <form id="registerForm" action="index.php" method="POST" style="display:none;">
+                <input type="hidden" name="action" value="register">
+                <div class="input-group">
+                    <input type="text" name="account" placeholder="設定帳號" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password" placeholder="設定密碼" required>
+                </div>
+                <div class="input-group">
+                    <input type="text" name="name" placeholder="真實姓名" required>
+                </div>
+                <div class="input-group">
+                    <input type="email" name="email" placeholder="電子郵件 (example@mail.com)" required>
+                </div>
+                <div class="input-group">
+                    <input type="tel" name="phoneno" placeholder="手機號碼 (0912345678)"
+                        pattern="09[0-9]{8}" title="請輸入正確的 10 位手機號碼，例如: 0912345678" required>
+                </div>
+
+                <button type="submit" class="btn-submit-login">完成註冊</button>
+                <div class="auth-footer">
+                    已經有帳號了？ <span class="link-register" onclick="switchTab('index')">返回登入</span>
+                </div>
+            </form>
         </div>
-    </main>
-
-    <!-- <footer>
-        <p>© 2026 二手交易平台版權所有</p>
-    </footer> -->
+    </div>
 
     <script>
-        function handleCategoryChange(selectElement) {
-            const targetUrl = selectElement.value;
-            if (targetUrl !== "") {
-                window.location.href = targetUrl;
+        function switchTab(type) {
+            const loginForm = document.getElementById('loginForm');
+            const regForm = document.getElementById('registerForm');
+            const tabs = document.querySelectorAll('.auth-tab');
+
+            tabs.forEach(t => t.classList.remove('active'));
+            if (loginForm) loginForm.style.display = 'none';
+            if (regForm) regForm.style.display = 'none';
+
+            if (type === 'index') {
+                if (loginForm) loginForm.style.display = 'block';
+                const tabLogin = document.getElementById('tab-login');
+                if (tabLogin) tabLogin.classList.add('active');
+            } else if (type === 'register') {
+                if (regForm) regForm.style.display = 'block';
+                const tabRegister = document.getElementById('tab-register');
+                if (tabRegister) tabRegister.classList.add('active');
             }
         }
 
         window.addEventListener('DOMContentLoaded', (event) => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const categoryDropdown = document.getElementById('category-dropdown');
-
-            if (urlParams.has('cat')) {
-                setTimeout(() => {
-                    if (categoryDropdown) categoryDropdown.selectedIndex = 0;
-                }, 1000);
-            }
+            switchTab("<?php echo $display_tab; ?>");
+            <?php if (!empty($alert_message)): ?>
+                alert("<?php echo $alert_message; ?>");
+            <?php endif; ?>
         });
-
-        function executeSearch() {
-            const keyword = document.getElementById('mainSearchInput').value.trim();
-            if (keyword !== "") {
-                window.location.href = "index.php?search=" + encodeURIComponent(keyword);
-            }
-        }
     </script>
 </body>
 
