@@ -13,8 +13,8 @@ $user_name = $_SESSION['user_name']; // 抓當前登入的會員姓名
 // 1. 取得當前點選的狀態篩選（預設為 '全部'）
 $current_status = isset($_GET['status']) ? trim($_GET['status']) : '全部';
 
-// 2. 建立基礎 SQL（根據你的資料表結構，這裡假設資料表叫 public.orders，買家欄位是 buyer_id）
-$sql = "SELECT * FROM public.orders WHERE buyer_id = :buyer_id";
+// 2. 建立基礎 SQL（根據你的資料表結構，這裡假設資料表叫 public."Order"，買家欄位是 buyer_id）
+$sql = "SELECT * FROM public.\"Order\" WHERE buyer_id = :buyer_id";
 $params = [':buyer_id' => $user_name];
 
 // 3. 如果不是選 '全部'，就加上 status 篩選條件
@@ -23,7 +23,7 @@ if ($current_status !== '全部') {
     $params[':status'] = $current_status;
 }
 
-$sql .= " ORDER BY id DESC"; // 讓最新的訂單排在前面
+$sql .= " ORDER BY id ASC"; // 按照訂單編號升序排列
 
 try {
     $stmt = $db->prepare($sql);
@@ -36,7 +36,7 @@ try {
 
 // 4. 為了計算最上方的「總支出」與「進行中筆數」，另外抓取該會員的全部訂單統計
 try {
-    $stats_stmt = $db->prepare("SELECT price, status FROM public.orders WHERE buyer_id = ?");
+    $stats_stmt = $db->prepare("SELECT price, status FROM public.\"Order\" WHERE buyer_id = ?");
     $stats_stmt->execute([$user_name]);
     $all_user_orders = $stats_stmt->fetchAll();
 
