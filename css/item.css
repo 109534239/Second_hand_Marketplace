@@ -1,0 +1,235 @@
+/* ==========================================================================
+   ✨ 商品詳情頁專屬高階質感排版 (優化版)
+   ========================================================================== */
+body {
+    background-color: #f8fafc;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    color: #1e293b;
+}
+
+.item-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+/* 詳情頁主卡片（左右分欄） */
+.detail-card {
+    background: #ffffff;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04),
+        0 0 0 1px rgba(15, 23, 42, 0.01);
+    display: flex;
+    flex-wrap: wrap;
+    overflow: hidden;
+}
+
+/* 左側：商品大圖區 */
+.detail-gallery {
+    flex: 1 1 500px;
+    background-color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 450px;
+    max-height: 600px;
+    overflow: hidden;
+}
+
+.detail-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 右側：商品資訊購買區 */
+.detail-info-panel {
+    flex: 1 1 450px;
+    padding: 50px 40px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+/* 商品標題 */
+.item-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.4;
+    margin: 0 0 20px 0;
+}
+
+/* 價格區塊 */
+.price-tag {
+    font-size: 32px;
+    font-weight: 800;
+    color: #ff385c;
+    margin-bottom: 30px;
+    display: flex;
+    align-items: baseline;
+}
+
+/* 分隔線 */
+.divider {
+    height: 1px;
+    background-color: #f1f5f9;
+    margin-bottom: 25px;
+}
+
+/* 規格明細（庫存等） */
+.spec-group {
+    margin-bottom: 25px;
+}
+
+.spec-item {
+    display: flex;
+    align-items: center;
+    font-size: 15px;
+    color: #475569;
+    margin-bottom: 12px;
+}
+
+.spec-label {
+    color: #94a3b8;
+    width: 80px;
+    font-weight: 500;
+}
+
+.badge-inventory {
+    background-color: #f1f5f9;
+    color: #1e293b;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13.5px;
+}
+
+.badge-inventory.danger {
+    background-color: #fee2e2;
+    color: #ef4444;
+}
+
+/* ==========================================================================
+   ✨ 購買數量區塊極致美化
+   ========================================================================== */
+.quantity-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 35px;
+    margin-top: 10px;
+}
+
+/* 膠囊外殼 */
+.quantity-counter {
+    display: inline-flex;
+    align-items: center;
+    background-color: #f8fafc;
+    border-radius: 14px;
+    padding: 4px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.quantity-counter:focus-within {
+    border-color: #ff385c;
+    box-shadow: 0 0 0 3px rgba(255, 56, 92, 0.1);
+}
+
+/* 加減按鈕 */
+.qty-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background-color: #ffffff;
+    color: #334155;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+    transition: all 0.2s ease;
+}
+
+.qty-btn:hover {
+    background-color: #ff385c;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(255, 56, 92, 0.2);
+}
+
+.qty-btn:active {
+    transform: scale(0.95);
+}
+
+/* 數字輸入框 */
+.qty-input {
+    width: 55px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    outline: none;
+    -moz-appearance: textfield;
+}
+
+/* 隱藏 Chrome/Safari 的原生上下小箭頭 */
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* ==========================================================================
+   🛒 結帳/送出訂單按鈕
+   ========================================================================== */
+.order-form {
+    margin-top: auto;
+}
+
+.btn-submit-order {
+    width: 100%;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #ff385c 0%, #ff6040 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(255, 56, 92, 0.25);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.5px;
+}
+
+.btn-submit-order:hover:not(:disabled) {
+    background: linear-gradient(135deg, #f42c50 0%, #f44e2b 100%);
+    box-shadow: 0 8px 25px rgba(255, 56, 92, 0.35);
+    transform: translateY(-2px);
+}
+
+.btn-submit-order:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 4px 12px rgba(255, 56, 92, 0.2);
+}
+
+/* 完售或不合法時鎖死的狀態 */
+.btn-submit-order:disabled {
+    background: #e2e8f0 !important;
+    color: #94a3b8 !important;
+    box-shadow: none !important;
+    cursor: not-allowed;
+    transform: none !important;
+    opacity: 0.7;
+}
