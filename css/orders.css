@@ -157,32 +157,15 @@
     text-align: right;
 }
 
-/* 狀態顏色 */
+/* 🏷️ 訂單狀態基礎樣式 */
 .status-tag {
     padding: 8px 16px;
     border-radius: 12px;
     font-size: 13px;
     font-weight: 700;
+    display: inline-block;
+    /* 確保內距撐得漂亮 */
 }
-
-.status-unpaid {
-    background: #fef2f2;
-    color: #ef4444;
-}
-
-/* 待付款-紅色 */
-.status-shipping {
-    background: #eff6ff;
-    color: #3b82f6;
-}
-
-/* 運送中-藍色 */
-.status-completed {
-    background: #f0fdf4;
-    color: #22c55e;
-}
-
-/* 已完成-綠色 */
 
 /* 按鈕 */
 .record-actions {

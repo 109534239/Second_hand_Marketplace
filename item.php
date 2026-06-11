@@ -25,6 +25,9 @@ if ($id > 0) {
 // 庫存防呆判斷
 $inventory = intval($product['inventory'] ?? 0);
 $is_out_of_stock = ($inventory <= 0);
+
+// 💡 取得商品單價，供 JavaScript 計算總價使用
+$product_price = intval($product['price'] ?? 0);
 ?>
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -35,6 +38,26 @@ $is_out_of_stock = ($inventory <= 0);
     <title><?= htmlspecialchars($product['name']) ?> | 二手交易平台</title>
     <link rel="stylesheet" href="css/frontpage.css">
     <link rel="stylesheet" href="css/item.css">
+    <style>
+        /* 💡 這裡附帶總金額的精美樣式，你可以移到你的 css/item.css 裡面 */
+        .total-price-wrapper {
+            margin-left: auto;
+            /* 讓總金額自動推到最右邊對齊 */
+            font-size: 15px;
+            color: #475569;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .total-price-display {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ff385c;
+            /* 與價格同色系的高階粉紅 */
+        }
+    </style>
 </head>
 
 <body>
@@ -75,8 +98,15 @@ $is_out_of_stock = ($inventory <= 0);
                             <div class="quantity-counter">
                                 <button type="button" class="qty-btn" onclick="changeQuantity(-1)">−</button>
                                 <input type="number" id="purchase_qty" name="quantity" class="qty-input"
-                                    value="1" min="1" max="<?= $inventory ?>" oninput="validateQuantity(this)">
+                                    value="1" min="1" max="<?= $inventory ?>"
+                                    oninput="validateQuantity(this)"
+                                    onblur="forceMinOne(this)">
                                 <button type="button" class="qty-btn" onclick="changeQuantity(1)">+</button>
+                            </div>
+
+                            <div class="total-price-wrapper">
+                                <span>總金額:</span>
+                                <span class="total-price-display" id="total_price_show">$<?= number_format($product_price) ?></span>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -92,6 +122,20 @@ $is_out_of_stock = ($inventory <= 0);
 
     <script>
         const maxInventory = <?= $inventory ?>;
+        const itemPrice = <?= $product_price ?>; // 💡 讓 JavaScript 記住商品單價
+
+        // 💡 核心功能：計算並即時渲染總金額與千分位
+        function updateTotalPrice() {
+            const qtyInput = document.getElementById('purchase_qty');
+            const priceShow = document.getElementById('total_price_show');
+            if (!qtyInput || !priceShow) return;
+
+            let qty = parseInt(qtyInput.value) || 0; // 如果是空值暫時當 0 計算
+            let total = qty * itemPrice;
+
+            // 格式化為千分位 (例如: $1,250)
+            priceShow.innerText = '$' + total.toLocaleString();
+        }
 
         function checkButtonState() {
             const qtyInput = document.getElementById('purchase_qty');
@@ -122,13 +166,20 @@ $is_out_of_stock = ($inventory <= 0);
             if (newVal > maxInventory) newVal = maxInventory;
 
             qtyInput.value = newVal;
+
+            // 💡 每次加減都要更新狀態與總金額
             checkButtonState();
+            updateTotalPrice();
         }
 
         function validateQuantity(input) {
             let val = parseInt(input.value);
 
-            if (isNaN(val)) return; // 允許使用者暫時刪除數字
+            if (isNaN(input.value) || input.value === "") {
+                checkButtonState();
+                updateTotalPrice(); // 打字刪光時也會同步歸 0
+                return;
+            }
 
             if (val < 1) {
                 input.value = 1;
@@ -136,28 +187,41 @@ $is_out_of_stock = ($inventory <= 0);
                 alert('抱歉，購買數量不能超過現有庫存！');
                 input.value = maxInventory;
             }
+
             checkButtonState();
+            updateTotalPrice(); // 💡 即時手動輸入時更新總金額
         }
 
-        // 💡 結帳按鈕點擊事件：驗證成功就 return true 讓表單送出到 create_order.php
+        function forceMinOne(input) {
+            let val = parseInt(input.value);
+            if (isNaN(val) || val < 1) {
+                input.value = 1;
+            }
+            checkButtonState();
+            updateTotalPrice(); // 💡 滑鼠移開防呆校正後再算一次總金額
+        }
+
         function handleOrderSubmit(event) {
             const qtyInput = document.getElementById('purchase_qty');
-            if (!qtyInput) {
+            if (!qtyInput) return true;
+
+            let finalQty = parseInt(qtyInput.value);
+
+            if (isNaN(finalQty) || finalQty < 1) {
+                qtyInput.value = 1;
+                finalQty = 1;
+            }
+
+            if (finalQty > maxInventory) {
+                alert('購買數量不正確，請重新確認！');
+                qtyInput.value = maxInventory;
+                checkButtonState();
+                updateTotalPrice();
                 event.preventDefault();
                 return false;
             }
 
-            let finalQty = parseInt(qtyInput.value);
-
-            // 如果輸入框是空的或不合法，禁止送出
-            if (isNaN(finalQty) || finalQty > maxInventory || finalQty < 1) {
-                alert('購買數量不正確，請重新確認！');
-                checkButtonState();
-                event.preventDefault(); // 攔截不轉跳
-                return false;
-            }
-
-            return true; // ✅ 驗證通過，放行表單送出
+            return true;
         }
     </script>
 </body>

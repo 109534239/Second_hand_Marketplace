@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $db = getDbConnection();
-$user_id = $_SESSION['user_id']; 
+$user_id = $_SESSION['user_id'];
 $user_name = $_SESSION['user_name']; // 抓取當前登入的會員姓名
 
 // 1. 取得當前點選的狀態篩選（預設為 '全部'）
@@ -55,7 +55,7 @@ try {
 
     foreach ($all_user_orders as $o) {
         $total_spend += $o['sum']; // 金額欄位改用 sum
-        
+
         // 只要不是「訂單已完成」，就屬於進行中（待付款、待出貨、待收貨）
         if ($o['status'] !== '訂單已完成') {
             $processing_count++;
@@ -68,9 +68,9 @@ try {
 
 // 💡 狀態與 CSS Class 的對應對照表
 $status_css_map = [
-    '待付款' => 'status-unpaid',
-    '待出貨' => 'status-pending', 
-    '待收貨' => 'status-shipping',
+    '待付款'     => 'status-unpaid',
+    '待出貨'     => 'status-pending',
+    '待收貨'     => 'status-shipping',
     '訂單已完成' => 'status-completed'
 ];
 ?>
@@ -83,6 +83,31 @@ $status_css_map = [
     <title>我的訂單紀錄 | 二手交易平台</title>
     <link rel="stylesheet" href="css/index.css">
     <link rel="stylesheet" href="css/orders.css">
+    <style>
+        /* 🔴 待付款 - 紅色 */
+        .status-unpaid {
+            background: #fef2f2;
+            color: #ef4444;
+        }
+
+        /* 🟡 待出貨 - ⚠️ 這是新補上的美美橘黃色 */
+        .status-pending {
+            background: #fffbeb;
+            color: #d97706;
+        }
+
+        /* 🔵 待收貨（運送中） - 藍色 */
+        .status-shipping {
+            background: #eff6ff;
+            color: #3b82f6;
+        }
+
+        /* 🟢 訂單已完成 - 綠色 */
+        .status-completed {
+            background: #f0fdf4;
+            color: #22c55e;
+        }
+    </style>
 </head>
 
 <body>
@@ -134,7 +159,7 @@ $status_css_map = [
                                         <span style="font-size: 24px;">📦</span>
                                     <?php endif; ?>
                                 </div>
-                                
+
                                 <div class="product-details">
                                     <h3 class="product-name"><?= htmlspecialchars($order['name'] ?? '未命名商品') ?></h3>
                                     <span style="font-size: 11px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #64748b;">

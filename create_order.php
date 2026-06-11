@@ -72,10 +72,7 @@ try {
 
     $db->commit();
 
-    echo "<script>
-            alert('🎉 訂單已成功送出！共 " . $quantity . " 件，總金額 $" . number_format($sum) . "'); 
-            window.location.href='orders.php';
-          </script>";
+    echo "<script>window.location.href='orders.php';</script>";
     exit;
 } catch (Exception $e) {
     // 發生錯誤時還原資料
