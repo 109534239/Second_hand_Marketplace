@@ -11,7 +11,7 @@ $db = getDbConnection();
 $order_id = isset($_GET['order_id']) ? intval($_GET['order_id']) : 0;
 $user_name = $_SESSION['user_name'];
 
-// 💡 修正：將查詢條件改回標準的 status
+// 驗證訂單
 $stmt = $db->prepare("
     SELECT o.*, i.name as item_name 
     FROM public.\"Order\" o
@@ -26,34 +26,56 @@ if (!$order) {
     exit;
 }
 
-// 處理表單送出
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $address = isset($_POST['address']) ? trim($_POST['address']) : '';
-    $payment_method = isset($_POST['payment_method']) ? $_POST['payment_method'] : '';
+// 💡 異步 AJAX：處理信用卡安全扣款
+if (isset($_GET['action']) && $_GET['action'] === 'process_credit_pay') {
+    header('Content-Type: application/json');
+    $address = isset($_GET['address']) ? trim($_GET['address']) : '';
 
     if (empty($address)) {
-        echo "<script>alert('請填寫寄送地址！');</script>";
+        echo json_encode(['success' => false, 'message' => '未提供有效的寄送地址！']);
+        exit;
+    }
+
+    try {
+        $db->beginTransaction();
+        $current_time = date('Y-m-d H:i:s');
+
+        // 更新訂單狀態
+        $update_stmt = $db->prepare("UPDATE public.\"Order\" SET status = '待出貨', time = ? WHERE id = ?");
+        $update_stmt->execute([$current_time, $order_id]);
+
+        // 寫入付款紀錄
+        $pay_stmt = $db->prepare("INSERT INTO public.payment (order_id, payment, address) VALUES (?, ?, ?)");
+        $pay_stmt->execute([$order_id, '信用卡', $address]);
+
+        $db->commit();
+        echo json_encode(['success' => true]);
+    } catch (Exception $e) {
+        $db->rollBack();
+        echo json_encode(['success' => false, 'message' => '資料庫處理失敗：' . $e->getMessage()]);
+    }
+    exit;
+}
+
+// 💡 同步表單：處理貨到付款 (COD) 送出
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $address = isset($_POST['address']) ? trim($_POST['address']) : '';
+    $payment_method = isset($_POST['payment_method']) ? $_POST['payment_method'] : 'cod';
+
+    if (empty($address)) {
+        echo "<script>alert('請填寫完整寄送地址！');</script>";
     } else {
         if ($payment_method === 'cod') {
             try {
                 $db->beginTransaction();
-
-                // 產生符合 'YYYY-MM-DD HH:MM:SS' 的當下時間
                 $current_time = date('Y-m-d H:i:s');
 
-                // 💡 修正：更新訂單狀態改回 status 
-                $update_stmt = $db->prepare("
-                    UPDATE public.\"Order\" 
-                    SET status = '待出貨', time = ? 
-                    WHERE id = ?
-                ");
+                // 更新訂單狀態
+                $update_stmt = $db->prepare("UPDATE public.\"Order\" SET status = '待出貨', time = ? WHERE id = ?");
                 $update_stmt->execute([$current_time, $order_id]);
 
-                // 寫入 payment 資料表
-                $pay_stmt = $db->prepare("
-                    INSERT INTO public.payment (order_id, payment, address) 
-                    VALUES (?, ?, ?)
-                ");
+                // 寫入付款紀錄
+                $pay_stmt = $db->prepare("INSERT INTO public.payment (order_id, payment, address) VALUES (?, ?, ?)");
                 $pay_stmt->execute([$order_id, '貨到付款', $address]);
 
                 $db->commit();
@@ -63,9 +85,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $db->rollBack();
                 echo "<script>alert('❌ 系統寫入失敗：" . addslashes($e->getMessage()) . "');</script>";
             }
-        } elseif ($payment_method === 'credit_card') {
-            header("Location: card.php?order_id=" . urlencode($order_id) . "&address=" . urlencode($address));
-            exit;
         }
     }
 }
@@ -87,6 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: white;
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            position: relative;
         }
 
         .checkout-title {
@@ -126,7 +146,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom: 20px;
         }
 
-        .form-group label {
+        .form-label {
             display: block;
             font-weight: 600;
             color: #334155;
@@ -155,6 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             grid-template-columns: 1fr 1fr;
             gap: 15px;
             margin-top: 10px;
+            margin-bottom: 20px;
         }
 
         .payment-card {
@@ -182,6 +203,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #1d4ed8;
         }
 
+        /* 💳 整合：信用卡區塊內部樣式 */
+        .credit-card-panel {
+            display: none;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 2px dashed #e2e8f0;
+        }
+
+        .card-visual {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
+        }
+
+        .card-chip {
+            width: 45px;
+            height: 35px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #fcd34d 0%, #f59e0b 100%);
+        }
+
+        .card-number-display {
+            font-size: 20px;
+            letter-spacing: 3px;
+            font-family: monospace;
+            margin-bottom: 15px;
+        }
+
+        .card-info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #94a3b8;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
         .btn-pay {
             width: 100%;
             padding: 14px;
@@ -201,6 +268,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             transform: translateY(-1px);
             box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
         }
+
+        .btn-pay.btn-credit {
+            background: #10b981;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-pay.btn-credit:hover {
+            background: #059669;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        /* 🔄 轉圈圈防刷遮罩 */
+        .loading-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 16px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 
@@ -209,6 +322,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <main class="container">
         <div class="checkout-container">
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="spinner"></div>
+                <h3 style="color: #1e293b; font-weight:700;">🏦 銀行安全連線授權中...</h3>
+                <p style="color: #64748b; font-size:13px; margin-top:5px;">正在進行安全扣款驗證，請勿關閉網頁</p>
+            </div>
+
             <h2 class="checkout-title">🛍️ 訂單結帳確認</h2>
 
             <div class="order-summary-box">
@@ -226,10 +345,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
 
-            <form method="POST" action="">
-                <div class="form-group">
-                    <label>📍 寄送地址</label>
+            <form id="mainCheckoutForm" method="POST" action="" onsubmit="handleFormSubmit(event)">
 
+                <div class="form-group">
+                    <label class="form-label">📍 寄送地址</label>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
                         <select id="tw_city" class="form-control" required onchange="updateDistricts()">
                             <option value="">請選擇縣市</option>
@@ -238,32 +357,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <option value="">請選擇區域</option>
                         </select>
                     </div>
-
-                    <input type="text" id="detail_address" class="form-control" placeholder="請輸入剩下的路名、巷弄、門牌號碼" required>
+                    <input type="text" id="detail_address" class="form-control" placeholder="請輸入路名、巷弄、門牌號碼" required>
 
                     <input type="hidden" id="address" name="address" value="">
                 </div>
 
                 <div class="form-group">
-                    <label>💳 付款方式</label>
+                    <label class="form-label">💳 付款方式</label>
                     <div class="payment-options">
                         <label>
-                            <input type="radio" name="payment_method" value="cod" checked>
+                            <input type="radio" name="payment_method" value="cod" checked onchange="togglePaymentPanel()">
                             <div class="payment-card">📦 貨到付款</div>
                         </label>
                         <label>
-                            <input type="radio" name="payment_method" value="credit_card">
+                            <input type="radio" name="payment_method" value="credit_card" onchange="togglePaymentPanel()">
                             <div class="payment-card">💳 信用卡付款</div>
                         </label>
                     </div>
                 </div>
 
-                <button type="submit" class="btn-pay">確認結帳，送出訂單</button>
+                <div id="cod_panel">
+                    <button type="submit" class="btn-pay">確認下單，貨到付款</button>
+                </div>
+
+                <div id="credit_panel" class="credit-card-panel">
+                    <div class="card-visual">
+                        <div class="card-chip"></div>
+                        <div class="card-number-display" id="mirror_number">•••• •••• •••• ••••</div>
+                        <div class="card-info-row">
+                            <div>持卡人姓名<br><span style="color:white; font-weight:600;" id="mirror_name">CARDHOLDER</span></div>
+                            <div>到期日<br><span style="color:white; font-weight:600;" id="mirror_date">MM/YY</span></div>
+                        </div>
+                    </div>
+
+                    <label class="form-label">卡號</label>
+                    <input type="text" id="cc_num" class="form-control" style="margin-bottom:15px;" maxlength="19" placeholder="4571 2345 6789 0123" oninput="syncCardNumber(this)">
+
+                    <div class="input-row" style="margin-bottom:15px;">
+                        <div>
+                            <label class="form-label">有效日期</label>
+                            <input type="text" id="card_expiry" class="form-control" maxlength="5" placeholder="MM/YY" oninput="formatExpiry(this)" onblur="validateExpiry(this)">
+                        </div>
+                        <div>
+                            <label class="form-label">安全碼 (CVC)</label>
+                            <input type="password" id="cc_cvc" class="form-control" maxlength="3" placeholder="123">
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-pay btn-credit" onclick="handleCreditCardPay()">確認安全付款 $<?= number_format($order['sum']) ?></button>
+                </div>
+
             </form>
         </div>
     </main>
+
     <script>
-        // 🇹🇼 台灣各縣市鄉鎮市區數據清單
+        // 🇹🇼 台灣行政區資料庫
         const twData = {
             "台北市": ["中正區", "大同區", "中山區", "松山區", "大安區", "萬華區", "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"],
             "新北市": ["板橋區", "三重區", "中和區", "永和區", "新莊區", "新店區", "樹林區", "鶯歌區", "三峽區", "淡水區", "汐止區", "瑞芳區", "土城區", "蘆洲區", "五股區", "泰山區", "林口區", "深坑區", "石碇區", "坪林區", "三芝區", "石門區", "八里區", "平溪區", "雙溪區", "貢寮區", "金山區", "萬里區", "烏來區"],
@@ -289,7 +438,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "連江縣": ["南竿鄉", "北竿鄉", "莒光鄉", "東引鄉"]
         };
 
-        // 初始化：把所有縣市丟進第一個下拉選單
+        // 初始化下拉選單
         const citySelect = document.getElementById('tw_city');
         const districtSelect = document.getElementById('tw_district');
         const detailInput = document.getElementById('detail_address');
@@ -302,11 +451,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             citySelect.appendChild(opt);
         }
 
-        // 當選了縣市，連動更新鄉鎮市區選單
         function updateDistricts() {
-            districtSelect.innerHTML = '<option value="">請選擇區域</option>'; // 先清空舊的
+            districtSelect.innerHTML = '<option value="">請選擇區域</option>';
             const selectedCity = citySelect.value;
-
             if (selectedCity && twData[selectedCity]) {
                 twData[selectedCity].forEach(dist => {
                     let opt = document.createElement('option');
@@ -318,31 +465,116 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             combineFinalAddress();
         }
 
-        // 核心組裝：把「縣市 + 區域 + 詳細地址」綁在一起，即時塞進 hidden input
         function combineFinalAddress() {
             const city = citySelect.value;
             const dist = districtSelect.value;
             const detail = detailInput.value.trim();
-
-            if (city && dist && detail) {
-                hiddenAddressInput.value = city + dist + detail;
-            } else {
-                hiddenAddressInput.value = ""; // 如果沒填滿，後端會觸發 required 阻擋
-            }
+            hiddenAddressInput.value = (city && dist && detail) ? (city + dist + detail) : "";
         }
 
-        // 監聽詳細地址打字、區域更換時，自動同步更新
         detailInput.addEventListener('input', combineFinalAddress);
         districtSelect.addEventListener('change', combineFinalAddress);
 
-        // 貼心連動：如果表單準備送出，做最後一次確認組裝
-        document.querySelector('form').addEventListener('submit', function(e) {
+        // 💡 點擊切換付款面板的開關
+        function togglePaymentPanel() {
+            const method = document.querySelector('input[name="payment_method"]:checked').value;
+            const codPanel = document.getElementById('cod_panel');
+            const creditPanel = document.getElementById('credit_panel');
+
+            // 獲取信用卡相關欄位
+            const ccFields = [document.getElementById('cc_num'), document.getElementById('cc_name'), document.getElementById('card_expiry'), document.getElementById('cc_cvc')];
+
+            if (method === 'credit_card') {
+                codPanel.style.display = 'none';
+                creditPanel.style.display = 'block';
+                ccFields.forEach(f => f.required = true); // 展開時啟用必填項
+            } else {
+                codPanel.style.display = 'block';
+                creditPanel.style.display = 'none';
+                ccFields.forEach(f => f.required = false); // 隱藏時關閉必填項
+            }
+        }
+
+        // 信用卡欄位輸入即時渲染特效
+        function syncCardNumber(input) {
+            let num = input.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+            let parts = [];
+            for (let i = 0; i < num.length; i += 4) {
+                parts.push(num.substring(i, i + 4));
+            }
+            input.value = parts.join(' ');
+            document.getElementById('mirror_number').innerText = input.value || '•••• •••• •••• ••••';
+        }
+
+        function formatExpiry(input) {
+            let code = input.value.replace(/\D/g, '');
+            input.value = code.length > 2 ? code.substring(0, 2) + '/' + code.substring(2, 4) : code;
+            document.getElementById('mirror_date').innerText = input.value || 'MM/YY';
+        }
+
+        function validateExpiry(input) {
+            let val = input.value;
+            if (val === '') return;
+            if (val.length < 5 || !val.includes('/')) {
+                alert('❌ 有效日期格式不正確，請輸入 MM/YY（例如 05/26）');
+                input.value = '';
+                return;
+            }
+        }
+
+        // 📦 處理貨到付款 (COD) 同步表單送出防呆
+        function handleFormSubmit(event) {
             combineFinalAddress();
             if (!hiddenAddressInput.value) {
-                alert('❌ 請完整選擇縣市、區域並填寫詳細地址！');
-                e.preventDefault();
+                alert('❌ 請完整填寫台灣縣市與詳細收件地址！');
+                event.preventDefault();
+                return false;
             }
-        });
+            return true;
+        }
+
+        // 💳 處理信用卡付款（AJAX 一體化異步發送）
+        function handleCreditCardPay() {
+            combineFinalAddress();
+            const fullAddress = hiddenAddressInput.value;
+
+            // 驗證地址
+            if (!fullAddress) {
+                alert('❌ 請先選擇寄送縣市、區域並填寫完整收件地址！');
+                return;
+            }
+
+            // 驗證信用卡基本填寫
+            if (!document.getElementById('cc_num').value || !document.getElementById('cc_name').value || !document.getElementById('card_expiry').value || !document.getElementById('cc_cvc').value) {
+                alert('❌ 請完整填寫所有的信用卡欄位資訊！');
+                return;
+            }
+
+            // 啟動炫酷銀行授權中遮罩
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            const orderId = "<?= $order_id ?>";
+            const encodedAddress = encodeURIComponent(fullAddress);
+
+            // 模擬 2 秒銀行安全查驗時間
+            setTimeout(() => {
+                fetch(`checkout.php?order_id=${orderId}&address=${encodedAddress}&action=process_credit_pay`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('🎉 信用卡授權扣款成功！即將為您安排出貨。');
+                            window.location.href = 'orders.php';
+                        } else {
+                            alert('❌ 付款失敗：' + (data.message || '銀行端拒絕交易'));
+                            document.getElementById('loadingOverlay').style.display = 'none';
+                        }
+                    })
+                    .catch(error => {
+                        alert('❌ 網路通訊超時，請重新送出。');
+                        document.getElementById('loadingOverlay').style.display = 'none';
+                    });
+            }, 2000);
+        }
     </script>
 </body>
 
