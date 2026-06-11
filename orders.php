@@ -127,7 +127,14 @@ $status_css_map = [
                     <div class="record-card">
                         <div class="record-info">
                             <div class="record-main">
-                                <div class="product-thumb">📦</div>
+                                <div class="product-thumb" style="display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                    <?php if (!empty($order['img'])): ?>
+                                        <img src="<?= htmlspecialchars($order['img']) ?>" alt="<?= htmlspecialchars($order['name'] ?? '商品圖片') ?>" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                                    <?php else: ?>
+                                        <span style="font-size: 24px;">📦</span>
+                                    <?php endif; ?>
+                                </div>
+                                
                                 <div class="product-details">
                                     <h3 class="product-name"><?= htmlspecialchars($order['name'] ?? '未命名商品') ?></h3>
                                     <span style="font-size: 11px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #64748b;">
