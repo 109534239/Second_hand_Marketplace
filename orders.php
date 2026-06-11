@@ -26,7 +26,7 @@ $order_records = [
         'price' => 12500,
         'seller' => '手機急先鋒',
         'date' => '2024-05-20',
-        'status' => '運送中',
+        'status' => '待收貨',
         'status_class' => 'status-shipping'
     ],
     [
@@ -35,7 +35,7 @@ $order_records = [
         'price' => 450,
         'seller' => '戶外大叔',
         'date' => '2024-05-15',
-        'status' => '已完成',
+        'status' => '訂單已完成',
         'status_class' => 'status-completed'
     ]
 ];
@@ -75,9 +75,9 @@ $order_records = [
         <div class="filter-tabs">
             <button class="filter-tab active">全部</button>
             <button class="filter-tab">待付款</button>
+            <button class="filter-tab">待出貨</button>
             <button class="filter-tab">待收貨</button>
-            <button class="filter-tab">已完成</button>
-            <button class="filter-tab">已取消</button>
+            <button class="filter-tab">訂單已完成</button>
         </div>
 
         <div class="records-list">
@@ -87,9 +87,7 @@ $order_records = [
                         <div class="record-main">
                             <div class="product-thumb">📦</div>
                             <div class="product-details">
-                                <span class="order-id">單號：<?= $order['id'] ?></span>
                                 <h3 class="product-name"><?= $order['p_name'] ?></h3>
-                                <p class="seller-info">賣家：<?= $order['seller'] ?> | 下單日期：<?= $order['date'] ?></p>
                             </div>
                         </div>
                         <div class="record-price">
@@ -99,16 +97,6 @@ $order_records = [
                         <div class="record-status">
                             <span class="status-tag <?= $order['status_class'] ?>"><?= $order['status'] ?></span>
                         </div>
-                    </div>
-                    <div class="record-actions">
-                        <button class="btn-detail">訂單詳情</button>
-                        <?php if ($order['status'] == '待付款'): ?>
-                            <button class="btn-primary-sm">立即付款</button>
-                        <?php elseif ($order['status'] == '運送中'): ?>
-                            <button class="btn-primary-sm">確認收貨</button>
-                        <?php elseif ($order['status'] == '已完成'): ?>
-                            <button class="btn-secondary-sm">評價商品</button>
-                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
