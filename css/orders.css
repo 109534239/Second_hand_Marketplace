@@ -54,7 +54,9 @@
 
 /* 篩選標籤 */
 .filter-tabs {
-    display: flex;
+    cursor: pointer;
+    text-decoration: none;
+    display: none;
     gap: 10px;
     margin-bottom: 25px;
 }

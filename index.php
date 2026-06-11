@@ -60,7 +60,7 @@ if (isset($_POST['action'])) {
 
         // 2. 進行註冊
         try {
-            $sql = "INSERT INTO \"User\" (account, password, name, role, phoneno, email) VALUES (?, ?, ?, 1, ?, ?)";
+            $sql = "INSERT INTO \"User\" (account, password, name, phoneno, email) VALUES (?, ?, ?, ?, ?)";
             $db->prepare($sql)->execute([$account, $password, $name, $phoneno, $email]);
 
             $_SESSION['auth_message'] = "註冊成功，請登入！";
