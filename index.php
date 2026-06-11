@@ -233,7 +233,7 @@ if (isset($_POST['action'])) {
         <div class="login-card">
 
             <div class="auth-tabs">
-                <button class="auth-tab" id="tab-login" onclick="switchTab('index')">會員登入</button>
+                <button class="auth-tab" id="tab-login" onclick="switchTab('index')">登入會員</button>
                 <button class="auth-tab" id="tab-register" onclick="switchTab('register')">加入會員</button>
             </div>
 
@@ -254,19 +254,19 @@ if (isset($_POST['action'])) {
             <form id="registerForm" action="index.php" method="POST" style="display:none;">
                 <input type="hidden" name="action" value="register">
                 <div class="input-group">
-                    <input type="text" name="account" placeholder="設定帳號" required>
+                    <input type="text" name="account" placeholder="帳號" required>
                 </div>
                 <div class="input-group">
-                    <input type="password" name="password" placeholder="設定密碼" required>
+                    <input type="password" name="password" placeholder="密碼" required>
                 </div>
                 <div class="input-group">
-                    <input type="text" name="name" placeholder="真實姓名" required>
+                    <input type="text" name="name" placeholder="姓名" required>
                 </div>
                 <div class="input-group">
-                    <input type="email" name="email" placeholder="電子郵件 (example@mail.com)" required>
+                    <input type="email" name="email" placeholder="電子郵件" required>
                 </div>
                 <div class="input-group">
-                    <input type="tel" name="phoneno" placeholder="手機號碼 (0912345678)"
+                    <input type="tel" name="phoneno" placeholder="電話"
                         pattern="09[0-9]{8}" title="請輸入正確的 10 位手機號碼，例如: 0912345678" required>
                 </div>
 
