@@ -53,7 +53,6 @@ try {
     $sum = $price * $quantity;
 
     // 5. 設定時間與狀態
-    // ⚠️ 請注意：根據你的截圖，欄位名稱是 status，如果你的資料庫預設狀態是英文（例如 'pending'），請把 '待處理' 改掉
     $status = '待付款';
     $current_time = date('Y-m-d H:i:s');
 
@@ -64,6 +63,9 @@ try {
     $stmt_order = $db->prepare($sql_order);
     $stmt_order->execute([$user_name, $item_id, $quantity, $sum, $status, $current_time]);
 
+    // 💡 【核心修改點 1】：成功寫入 Order 表後，立即抓取資料庫剛生成的訂單 ID 流水號
+    $new_order_id = $db->lastInsertId();
+
     // 6. 更新商品庫存
     $new_inventory = $current_inventory - $quantity;
     $sql_update_item = "UPDATE public.item SET inventory = ? WHERE id = ?";
@@ -72,7 +74,8 @@ try {
 
     $db->commit();
 
-    echo "<script>window.location.href='orders.php';</script>";
+    // 💡 【核心修改點 2】：不要跳去 orders.php，直接帶著 order_id 跳往結帳頁面！
+    echo "<script>window.location.href='checkout.php?order_id=" . $new_order_id . "';</script>";
     exit;
 } catch (Exception $e) {
     // 發生錯誤時還原資料
