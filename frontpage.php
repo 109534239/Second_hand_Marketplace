@@ -46,7 +46,7 @@ if (empty($categories)) {
 $cat_id = isset($_GET['cat']) ? intval($_GET['cat']) : null;
 $search = isset($_GET['search']) ? trim($_GET['search']) : null;
 
-// 2. 建立基礎 SQL
+// 2. 建立基礎 SQL (將 c.category 分類名稱也選進來)
 $sql = "SELECT i.*, c.category as category_name 
         FROM public.item i
         LEFT JOIN public.category c ON i.category_id = c.id
@@ -60,8 +60,9 @@ if ($cat_id) {
 }
 
 if ($search) {
-    // 💡 根據你的資料庫結構，將 i.p_name 改為 i.name
-    $sql .= " AND (i.name ILIKE :search)";
+    // 💡 終極優化：同時搜尋「商品名稱(i.name)」與「分類名稱(c.category)」
+    // 這樣一來，搜尋「嬰」或「嬰兒」，就會因為它屬於「母嬰與兒童用品」而被神奇地搜尋出來！
+    $sql .= " AND (i.name ILIKE :search OR c.category ILIKE :search)";
     $params[':search'] = '%' . $search . '%';
 }
 
@@ -173,11 +174,6 @@ if ($cat_id) {
             background: #e31c5f;
         }
 
-        .section-header {
-            margin-bottom: 30px;
-            text-align: left;
-        }
-
         .section-title {
             font-size: 22px;
             font-weight: 800;
@@ -193,19 +189,13 @@ if ($cat_id) {
             margin-bottom: 30px;
         }
 
-        /* ==========================================================================
-   ✨ 頂級電商風商品卡片美化
-   ========================================================================== */
-
-        /* 商品網格：稍微拉開間距，整體視覺更舒服 */
+        /* 商品網格 */
         .product-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 30px;
-            /* 增加到 30px 讓畫面更有呼吸感 */
         }
 
-        /* 商品卡片外層連結：加上圓角與隱藏溢出，確保 hover 時陰影不會被切掉 */
         .product-card-link {
             text-decoration: none;
             color: inherit;
@@ -213,33 +203,22 @@ if ($cat_id) {
             border-radius: 20px;
         }
 
-        /* 商品卡片：微調動畫曲線，讓它浮空得更平滑、更高級 */
         .product-card {
             background-color: #ffffff;
             border-radius: 20px;
             overflow: hidden;
-            /* 質感輕陰影層次 */
-            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02),
-                0 2px 6px rgba(15, 23, 42, 0.02);
-            /* 將過度彈跳的 cubic-bezier 改為優雅流暢的 ease-out */
-            transition: transform 0.35s cubic-bezier(0.215, 0.610, 0.355, 1),
-                box-shadow 0.35s ease-out;
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.02), 0 2px 6px rgba(15, 23, 42, 0.02);
+            transition: transform 0.35s cubic-bezier(0.215, 0.610, 0.355, 1), box-shadow 0.35s ease-out;
             border: 1px solid #f1f5f9;
-            /* 換成現代的細緻淡灰邊框 */
             position: relative;
         }
 
-        /* 懸停效果：優雅地向上微浮，並釋放柔和深邃的陰影 */
         .product-card-link:hover .product-card {
             transform: translateY(-8px);
-            box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.12),
-                0 10px 20px -5px rgba(255, 56, 92, 0.03);
-            /* 帶有一點點桃紅的氛圍光 */
+            box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.12), 0 10px 20px -5px rgba(255, 56, 92, 0.03);
             border-color: rgba(255, 56, 92, 0.15);
-            /* 輕微提亮邊框 */
         }
 
-        /* 商品圖片：加入微幅放大效果，滑鼠移上去時圖片會稍微放大，很有高級感 */
         .product-img {
             width: 100%;
             height: 240px;
@@ -250,23 +229,18 @@ if ($cat_id) {
 
         .product-card-link:hover .product-img {
             transform: scale(1.04);
-            /* 微放大 */
         }
 
-        /* 商品資訊區塊 */
         .product-info {
-            padding: 22px 20px;
-            /* 稍微加深上下間距 */
+            padding: 20px;
         }
 
-        /* 商品標題：調整字體顏色對比與行高，看起來更精緻 */
+        /* 💡 修正排版：標題與價格上下分開，避免揉在框裡被擠扁 */
         .product-title {
             font-size: 15.5px;
             font-weight: 600;
-            /* 600 比 700 更內斂好看 */
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             color: #1e293b;
-            /* 採用更百搭的高階深灰藍 */
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -275,48 +249,33 @@ if ($cat_id) {
             height: 45px;
         }
 
-        /* 商品價錢：加上微小字體的錢字號，排版會更專業 */
         .product-price {
             font-size: 22px;
             color: #ff385c;
             font-weight: 800;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             display: flex;
             align-items: baseline;
             letter-spacing: -0.5px;
         }
 
-        /* 商品頁尾分界：改用非常乾淨的 border */
+        /* 卡片底部小標籤區 */
         .product-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 13px;
-            color: #64748b;
-            /* 提高文字可讀性 */
-            padding-top: 14px;
+            font-size: 12px;
+            padding-top: 12px;
             border-top: 1px solid #f1f5f9;
         }
 
-        /* 商品狀態/庫存標籤：改成更現代、低飽和度的日系質感配色 */
-        .product-condition {
-            background-color: #fff1f2;
-            /* 更柔和的桃紅底色 */
-            color: #ff385c;
-            padding: 3px 10px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 12px;
-        }
-
-        /* 庫存文字改為淡淡的膠囊背景裝飾 */
-        .product-inventory {
+        /* 日系分類小標籤 */
+        .product-cat-tag {
             background-color: #f1f5f9;
-            color: #475569;
-            padding: 3px 10px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 12px;
+            color: #64748b;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 500;
         }
     </style>
 </head>
@@ -377,9 +336,14 @@ if ($cat_id) {
                                 alt="商品圖片" class="product-img">
 
                             <div class="product-info">
+                                <div class="product-title"><?= htmlspecialchars($p['name']) ?></div>
+                                <div class="product-price">$<?= number_format($p['price']) ?></div>
+
                                 <div class="product-footer">
-                                    <div class="product-title"><?= htmlspecialchars($p['name']) ?></div>
-                                    <div class="product-price">$<?= number_format($p['price']) ?></div>
+                                    <span class="product-cat-tag">
+                                        <?= htmlspecialchars($p['category_name'] ?? '未分類') ?>
+                                    </span>
+                                    <span style="color: #94a3b8; font-size:11px;">查看詳情 →</span>
                                 </div>
                             </div>
                         </div>
@@ -402,7 +366,6 @@ if ($cat_id) {
             const urlParams = new URLSearchParams(window.location.search);
             const cat = urlParams.get('cat');
 
-            // 💡 修正：導向當前頁面 frontpage.php
             let targetUrl = "frontpage.php?";
             if (cat) {
                 targetUrl += "cat=" + cat + "&";
