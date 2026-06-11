@@ -6,7 +6,7 @@ $host = 'dpg-d8budlbbc2fs738lur90-a.singapore-postgres.render.com';
 $port = '5432';
 $dbname = 'second_hand';
 $user = 'second_hand_user';
-$password = ''; // <-- 請替換成 Render 上顯示的正確密碼
+$password = '5F5py6JfyAjCuFRUOgyyY0rE8NEWpwdP'; // <-- 請替換成 Render 上顯示的正確密碼
 
 $dsn = "pgsql:host=$host;port=$port;dbname=$dbname;sslmode=require";
 

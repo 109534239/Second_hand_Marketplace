@@ -377,11 +377,9 @@ if ($cat_id) {
                                 alt="商品圖片" class="product-img">
 
                             <div class="product-info">
-                                <div class="product-title"><?= htmlspecialchars($p['name']) ?></div>
-                                <div class="product-price">$<?= number_format($p['price']) ?></div>
-
                                 <div class="product-footer">
-                                    <span class="product-inventory">庫存: <?= htmlspecialchars($p['inventory'] ?? '0') ?></span>
+                                    <div class="product-title"><?= htmlspecialchars($p['name']) ?></div>
+                                    <div class="product-price">$<?= number_format($p['price']) ?></div>
                                 </div>
                             </div>
                         </div>
