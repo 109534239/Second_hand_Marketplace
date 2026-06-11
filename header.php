@@ -84,8 +84,6 @@ if (session_status() === PHP_SESSION_NONE) {
         <nav class="nav-menu">
             <?php if (isset($_SESSION['user_id'])): ?>
                 <div class="user-controls">
-                    <a href="frontpage.php" class="nav-link">瀏覽/搜尋商品</a>
-                    <a href="orders.php" class="nav-link">建立訂單</a>
                     <a href="orders.php" class="nav-link">管理個人訂單</a>
                     <span class="welcome-msg">歡迎，<?= htmlspecialchars($_SESSION['user_name']) ?></span>
                     <a href="logout.php" class="btn-logout">登出</a>
