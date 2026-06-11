@@ -8,22 +8,28 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $db = getDbConnection();
-$user_name = $_SESSION['user_name']; // 抓當前登入的會員姓名
+$user_id = $_SESSION['user_id']; 
+$user_name = $_SESSION['user_name']; // 抓取當前登入的會員姓名
 
 // 1. 取得當前點選的狀態篩選（預設為 '全部'）
 $current_status = isset($_GET['status']) ? trim($_GET['status']) : '全部';
 
-// 2. 建立基礎 SQL（根據你的資料表結構，這裡假設資料表叫 public.orders，買家欄位是 buyer_id）
-$sql = "SELECT * FROM public.orders WHERE buyer_id = :buyer_id";
-$params = [':buyer_id' => $user_name];
+// 2. 建立基礎 SQL（使用你提供的新 JOIN 語法）
+$sql = "SELECT c.category, i.name, i.img, o.quantity, o.sum, o.status, o.time, o.id
+        FROM \"Order\" o
+        JOIN \"item\" i ON o.item_id = i.id
+        JOIN \"category\" c ON i.category_id = c.id
+        WHERE o.user_name = :user_name";
 
-// 3. 如果不是選 '全部'，就加上 status 篩選條件
+$params = [':user_name' => $user_name];
+
+// 3. 如果不是選 '全部'，就動態加上 status 篩選條件
 if ($current_status !== '全部') {
-    $sql .= " AND status = :status";
+    $sql .= " AND o.status = :status";
     $params[':status'] = $current_status;
 }
 
-$sql .= " ORDER BY id DESC"; // 讓最新的訂單排在前面
+$sql .= " ORDER BY o.id ASC"; // 依照你的需求，由舊到新正序排列 (ASC)
 
 try {
     $stmt = $db->prepare($sql);
@@ -34,9 +40,13 @@ try {
     $order_records = [];
 }
 
-// 4. 為了計算最上方的「總支出」與「進行中筆數」，另外抓取該會員的全部訂單統計
+// 4. 計算最上方的「總支出」與「進行中筆數」
 try {
-    $stats_stmt = $db->prepare("SELECT price, status FROM public.orders WHERE buyer_id = ?");
+    $stats_stmt = $db->prepare("
+        SELECT o.sum, o.status 
+        FROM \"Order\" o
+        WHERE o.user_name = ?
+    ");
     $stats_stmt->execute([$user_name]);
     $all_user_orders = $stats_stmt->fetchAll();
 
@@ -44,9 +54,10 @@ try {
     $processing_count = 0;
 
     foreach ($all_user_orders as $o) {
-        $total_spend += $o['price'];
-        // 只要不是「訂單已完成」或「已取消」，都算進行中
-        if ($o['status'] !== '訂單已完成' && $o['status'] !== '已取消') {
+        $total_spend += $o['sum']; // 金額欄位改用 sum
+        
+        // 只要不是「訂單已完成」，就屬於進行中（待付款、待出貨、待收貨）
+        if ($o['status'] !== '訂單已完成') {
             $processing_count++;
         }
     }
@@ -58,40 +69,9 @@ try {
 // 💡 狀態與 CSS Class 的對應對照表
 $status_css_map = [
     '待付款' => 'status-unpaid',
-    '待出貨' => 'status-pending', // 你可以自訂這個 class
+    '待出貨' => 'status-pending', 
     '待收貨' => 'status-shipping',
-    '訂單已完成' => 'status-completed',
-    '已取消' => 'status-cancelled'
-];
-// 模擬買家資料 (之後改為 SQL: SELECT * FROM orders WHERE buyer_id = ...)
-$order_records = [
-    [
-        'id' => 'ORD-2024005',
-        'p_name' => '二手極新 PS5 光碟版 主機',
-        'price' => 13000,
-        'seller' => '電玩達人',
-        'date' => '2024-05-22',
-        'status' => '待付款',
-        'status_class' => 'status-unpaid'
-    ],
-    [
-        'id' => 'ORD-2024001',
-        'p_name' => '九成新 iPhone 13 128G 藍色',
-        'price' => 12500,
-        'seller' => '手機急先鋒',
-        'date' => '2024-05-20',
-        'status' => '待收貨',
-        'status_class' => 'status-shipping'
-    ],
-    [
-        'id' => 'ORD-2024003',
-        'p_name' => '露營必備 摺疊小桌',
-        'price' => 450,
-        'seller' => '戶外大叔',
-        'date' => '2024-05-15',
-        'status' => '訂單已完成',
-        'status_class' => 'status-completed'
-    ]
+    '訂單已完成' => 'status-completed'
 ];
 ?>
 <!DOCTYPE html>
@@ -126,7 +106,7 @@ $order_records = [
             </div>
         </div>
 
-        <div class="filter-tabs">
+        <div class="filter-tabs" style="margin-bottom: 20px; display: flex; gap: 15px;">
             <a href="orders.php?status=全部" class="filter-tab <?= $current_status === '全部' ? 'active' : '' ?>">全部</a>
             <a href="orders.php?status=待付款" class="filter-tab <?= $current_status === '待付款' ? 'active' : '' ?>">待付款</a>
             <a href="orders.php?status=待出貨" class="filter-tab <?= $current_status === '待出貨' ? 'active' : '' ?>">待出貨</a>
@@ -136,13 +116,12 @@ $order_records = [
 
         <div class="records-list">
             <?php if (empty($order_records)): ?>
-                <div style="text-align: center; padding: 60px; color: #94a3b8; background: white; border-radius: 16px;">
+                <div style="text-align: center; padding: 60px; color: #94a3b8; background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                     <p style="font-size: 48px; margin-bottom: 10px;">📦</p>
-                    <p>目前沒有「<?= htmlspecialchars($current_status) ?>」的訂單紀錄紀錄喔！</p>
+                    <p>目前沒有「<?= htmlspecialchars($current_status) ?>」的訂單紀錄喔！</p>
                 </div>
             <?php else: ?>
                 <?php foreach ($order_records as $order):
-                    // 自動取得對應的 CSS Class，如果對照表沒有就給預設值
                     $current_class = $status_css_map[$order['status']] ?? 'status-default';
                 ?>
                     <div class="record-card">
@@ -150,18 +129,29 @@ $order_records = [
                             <div class="record-main">
                                 <div class="product-thumb">📦</div>
                                 <div class="product-details">
-                                    <h3 class="product-name"><?= htmlspecialchars($order['p_name'] ?? '未命名商品') ?></h3>
-                                    <p style="font-size: 12px; color: #94a3b8; margin-top: 4px;">訂單編號：<?= htmlspecialchars($order['id']) ?></p>
+                                    <h3 class="product-name"><?= htmlspecialchars($order['name'] ?? '未命名商品') ?></h3>
+                                    <span style="font-size: 11px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #64748b;">
+                                        <?= htmlspecialchars($order['category']) ?>
+                                    </span>
+                                    <p style="font-size: 12px; color: #94a3b8; margin-top: 6px;">數量：<?= htmlspecialchars($order['quantity']) ?></p>
                                 </div>
                             </div>
                             <div class="record-price">
                                 <span class="price-label">實付金額</span>
-                                <span class="price-value">$<?= number_format($order['price']) ?></span>
+                                <span class="price-value">$<?= number_format($order['sum']) ?></span>
                             </div>
                             <div class="record-status">
                                 <span class="status-tag <?= $current_class ?>"><?= htmlspecialchars($order['status']) ?></span>
                             </div>
                         </div>
+
+                        <?php if ($order['status'] === '待付款'): ?>
+                            <div class="record-actions">
+                                <a href="checkout.php?order_id=<?= urlencode($order['id']) ?>" class="btn-primary-sm" style="text-decoration: none; display: inline-block;">
+                                    💳 結帳
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endforeach; ?>
             <?php endif; ?>

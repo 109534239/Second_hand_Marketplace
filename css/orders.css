@@ -56,12 +56,13 @@
 .filter-tabs {
     cursor: pointer;
     text-decoration: none;
-    display: none;
+    display: flex;
     gap: 10px;
     margin-bottom: 25px;
 }
 
 .filter-tab {
+    text-decoration: none;
     padding: 10px 22px;
     border: none;
     background: #fff;

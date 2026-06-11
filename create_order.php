@@ -53,16 +53,16 @@ try {
     $sum = $price * $quantity;
 
     // 5. 設定時間與狀態
-    // ⚠️ 請注意：根據你的截圖，欄位名稱是 ststus，如果你的資料庫預設狀態是英文（例如 'pending'），請把 '待處理' 改掉
-    $ststus = '待處理';
+    // ⚠️ 請注意：根據你的截圖，欄位名稱是 status，如果你的資料庫預設狀態是英文（例如 'pending'），請把 '待處理' 改掉
+    $status = '待付款';
     $current_time = date('Y-m-d H:i:s');
 
     // 💡 修正點：在雙引號字串中，PostgreSQL 的大寫表名 "Order" 必須用反斜線轉義
-    $sql_order = "INSERT INTO public.\"Order\" (user_name, item_id, quantity, sum, ststus, time) 
+    $sql_order = "INSERT INTO public.\"Order\" (user_name, item_id, quantity, sum, status, time) 
                   VALUES (?, ?, ?, ?, ?, ?)";
 
     $stmt_order = $db->prepare($sql_order);
-    $stmt_order->execute([$user_name, $item_id, $quantity, $sum, $ststus, $current_time]);
+    $stmt_order->execute([$user_name, $item_id, $quantity, $sum, $status, $current_time]);
 
     // 6. 更新商品庫存
     $new_inventory = $current_inventory - $quantity;
