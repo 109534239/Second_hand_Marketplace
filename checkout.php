@@ -2,6 +2,9 @@
 require_once __DIR__ . '/db.php';
 session_start();
 
+// 強制將 PHP 時區設為台灣台北時間
+date_default_timezone_set('Asia/Taipei');
+
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit;
@@ -26,7 +29,7 @@ if (!$order) {
     exit;
 }
 
-// 💡 異步 AJAX：處理信用卡安全扣款
+// 異步 AJAX：處理信用卡安全扣款
 if (isset($_GET['action']) && $_GET['action'] === 'process_credit_pay') {
     header('Content-Type: application/json');
     $address = isset($_GET['address']) ? trim($_GET['address']) : '';
@@ -36,28 +39,38 @@ if (isset($_GET['action']) && $_GET['action'] === 'process_credit_pay') {
         exit;
     }
 
-    try {
-        $db->beginTransaction();
-        $current_time = date('Y-m-d H:i:s');
+    // 機率機制：1~100 隨機數，1 或 2 為失敗（2%），其餘為成功（98%）
+    $chance = rand(1, 100);
 
-        // 更新訂單狀態
-        $update_stmt = $db->prepare("UPDATE public.\"Order\" SET status = '待出貨', time = ? WHERE id = ?");
-        $update_stmt->execute([$current_time, $order_id]);
+    if ($chance <= 2) {
+        // ❌ 付款失敗（2%）：不改狀態也不改資料表，直接回傳失敗
+        echo json_encode(['success' => false, 'message' => '銀行端授權失敗，請檢查卡號或額度。']);
+        exit;
+    } else {
+        // 🎉 付款成功（98%）：更新狀態並進資料表
+        try {
+            $db->beginTransaction();
+            $current_time = date('Y-m-d H:i:s');
 
-        // 寫入付款紀錄
-        $pay_stmt = $db->prepare("INSERT INTO public.payment (order_id, payment, address) VALUES (?, ?, ?)");
-        $pay_stmt->execute([$order_id, '信用卡', $address]);
+            // 更新訂單狀態為待出貨
+            $update_stmt = $db->prepare("UPDATE public.\"Order\" SET status = '待出貨', time = ? WHERE id = ?");
+            $update_stmt->execute([$current_time, $order_id]);
 
-        $db->commit();
-        echo json_encode(['success' => true]);
-    } catch (Exception $e) {
-        $db->rollBack();
-        echo json_encode(['success' => false, 'message' => '資料庫處理失敗：' . $e->getMessage()]);
+            // 寫入付款紀錄
+            $pay_stmt = $db->prepare("INSERT INTO public.payment (order_id, payment, address) VALUES (?, ?, ?)");
+            $pay_stmt->execute([$order_id, '信用卡', $address]);
+
+            $db->commit();
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            $db->rollBack();
+            echo json_encode(['success' => false, 'message' => '資料庫處理失敗：' . $e->getMessage()]);
+        }
+        exit;
     }
-    exit;
 }
 
-// 💡 同步表單：處理貨到付款 (COD) 送出
+// 同步表單：處理貨到付款 (COD) 送出
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $address = isset($_POST['address']) ? trim($_POST['address']) : '';
     $payment_method = isset($_POST['payment_method']) ? $_POST['payment_method'] : 'cod';
@@ -203,7 +216,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #1d4ed8;
         }
 
-        /* 💳 整合：信用卡區塊內部樣式 */
         .credit-card-panel {
             display: none;
             margin-top: 25px;
@@ -279,7 +291,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
         }
 
-        /* 🔄 轉圈圈防刷遮罩 */
         .loading-overlay {
             display: none;
             position: absolute;
@@ -385,7 +396,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="card-chip"></div>
                         <div class="card-number-display" id="mirror_number">•••• •••• •••• ••••</div>
                         <div class="card-info-row">
-                            <div>持卡人姓名<br><span style="color:white; font-weight:600;" id="mirror_name">CARDHOLDER</span></div>
                             <div>到期日<br><span style="color:white; font-weight:600;" id="mirror_date">MM/YY</span></div>
                         </div>
                     </div>
@@ -412,7 +422,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </main>
 
     <script>
-        // 🇹🇼 台灣行政區資料庫
         const twData = {
             "台北市": ["中正區", "大同區", "中山區", "松山區", "大安區", "萬華區", "信義區", "士林區", "北投區", "內湖區", "南港區", "文山區"],
             "新北市": ["板橋區", "三重區", "中和區", "永和區", "新莊區", "新店區", "樹林區", "鶯歌區", "三峽區", "淡水區", "汐止區", "瑞芳區", "土城區", "蘆洲區", "五股區", "泰山區", "林口區", "深坑區", "石碇區", "坪林區", "三芝區", "石門區", "八里區", "平溪區", "雙溪區", "貢寮區", "金山區", "萬里區", "烏來區"],
@@ -432,13 +441,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "屏東縣": ["屏東市", "潮州鎮", "東港鎮", "恆春鎮", "萬丹鄉", "長治鄉", "麟洛鄉", "九如鄉", "里港鄉", "高樹鄉", "鹽埔鄉", "內埔鄉", "萬巒鄉", "竹田鄉", "內埤鄉", "枋寮鄉", "新園鄉", "崁頂鄉", "林邊鄉", "南州鄉", "佳冬鄉", "琉球鄉", "車城鄉", "滿州鄉", "枋山鄉", "三地門鄉", "霧台鄉", "瑪家鄉", "泰武鄉", "來義鄉", "春日鄉", "獅子鄉", "牡丹鄉"],
             "宜蘭縣": ["宜蘭市", "羅東鎮", "蘇澳鎮", "頭城鎮", "礁溪鄉", "壯圍鄉", "員山鄉", "冬山鄉", "五結鄉", "三星鄉", "大同鄉", "南澳鄉"],
             "花蓮縣": ["花蓮市", "鳳林鎮", "玉里鎮", "新城鄉", "吉安鄉", "壽豐鄉", "光復鄉", "豐濱鄉", "瑞穗鄉", "富里鄉", "秀林鄉", "萬榮鄉", "卓溪鄉"],
-            "台東縣": ["台東市", "成功鎮", "關山鎮", "卑南鄉", "大武鄉", "太麻里鄉", "東河鄉", "長濱鄉", "鹿野鄉", "池上鄉", "綠島鄉", "延平鄉", "海端鄉", "達仁鄉", "金峰鄉", "蘭嶼鄉"],
+            "台東縣": ["台東市", "成功鎮", "關山鎮", "卑名鄉", "大武鄉", "太麻里鄉", "東河鄉", "長濱鄉", "鹿野鄉", "池上鄉", "綠島鄉", "延平鄉", "海端鄉", "達仁鄉", "金峰鄉", "蘭嶼鄉"],
             "澎湖縣": ["馬公市", "湖西鄉", "白沙鄉", "西嶼鄉", "望安鄉", "七美鄉"],
             "金門縣": ["金城鎮", "金沙鎮", "金湖鎮", "金寧鄉", "烈嶼鄉", "烏坵鄉"],
             "連江縣": ["南竿鄉", "北竿鄉", "莒光鄉", "東引鄉"]
         };
 
-        // 初始化下拉選單
         const citySelect = document.getElementById('tw_city');
         const districtSelect = document.getElementById('tw_district');
         const detailInput = document.getElementById('detail_address');
@@ -475,27 +483,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         detailInput.addEventListener('input', combineFinalAddress);
         districtSelect.addEventListener('change', combineFinalAddress);
 
-        // 💡 點擊切換付款面板的開關
         function togglePaymentPanel() {
             const method = document.querySelector('input[name="payment_method"]:checked').value;
             const codPanel = document.getElementById('cod_panel');
             const creditPanel = document.getElementById('credit_panel');
 
-            // 獲取信用卡相關欄位
-            const ccFields = [document.getElementById('cc_num'), document.getElementById('cc_name'), document.getElementById('card_expiry'), document.getElementById('cc_cvc')];
+            // 💡 移除原本對 cc_name 的引用
+            const ccFields = [document.getElementById('cc_num'), document.getElementById('card_expiry'), document.getElementById('cc_cvc')];
 
             if (method === 'credit_card') {
                 codPanel.style.display = 'none';
                 creditPanel.style.display = 'block';
-                ccFields.forEach(f => f.required = true); // 展開時啟用必填項
+                ccFields.forEach(f => {
+                    if (f) f.required = true;
+                });
             } else {
                 codPanel.style.display = 'block';
                 creditPanel.style.display = 'none';
-                ccFields.forEach(f => f.required = false); // 隱藏時關閉必填項
+                ccFields.forEach(f => {
+                    if (f) f.required = false;
+                });
             }
         }
 
-        // 信用卡欄位輸入即時渲染特效
         function syncCardNumber(input) {
             let num = input.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
             let parts = [];
@@ -522,7 +532,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        // 📦 處理貨到付款 (COD) 同步表單送出防呆
         function handleFormSubmit(event) {
             combineFinalAddress();
             if (!hiddenAddressInput.value) {
@@ -533,47 +542,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return true;
         }
 
-        // 💳 處理信用卡付款（AJAX 一體化異步發送）
         function handleCreditCardPay() {
             combineFinalAddress();
             const fullAddress = hiddenAddressInput.value;
 
-            // 驗證地址
             if (!fullAddress) {
                 alert('❌ 請先選擇寄送縣市、區域並填寫完整收件地址！');
                 return;
             }
 
-            // 驗證信用卡基本填寫
-            if (!document.getElementById('cc_num').value || !document.getElementById('cc_name').value || !document.getElementById('card_expiry').value || !document.getElementById('cc_cvc').value) {
+            const elNum = document.getElementById('cc_num');
+            const elExpiry = document.getElementById('card_expiry');
+            const elCvc = document.getElementById('cc_cvc');
+
+            // 💡 驗證條件同步移除了 elName (持卡人姓名)
+            if (!elNum || !elExpiry || !elCvc ||
+                !elNum.value.trim() || !elExpiry.value.trim() || !elCvc.value.trim()) {
                 alert('❌ 請完整填寫所有的信用卡欄位資訊！');
                 return;
             }
 
-            // 啟動炫酷銀行授權中遮罩
-            document.getElementById('loadingOverlay').style.display = 'flex';
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.style.display = 'flex';
+            }
 
             const orderId = "<?= $order_id ?>";
             const encodedAddress = encodeURIComponent(fullAddress);
 
-            // 模擬 2 秒銀行安全查驗時間
             setTimeout(() => {
-                fetch(`checkout.php?order_id=${orderId}&address=${encodedAddress}&action=process_credit_pay`)
-                    .then(response => response.json())
+                const currentFile = window.location.pathname.split('/').pop();
+
+                fetch(`${currentFile}?order_id=${orderId}&address=${encodedAddress}&action=process_credit_pay`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('網路回應不正常');
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         if (data.success) {
                             alert('🎉 信用卡授權扣款成功！即將為您安排出貨。');
                             window.location.href = 'orders.php';
                         } else {
                             alert('❌ 付款失敗：' + (data.message || '銀行端拒絕交易'));
-                            document.getElementById('loadingOverlay').style.display = 'none';
+                            window.location.href = `checkout.php?order_id=${orderId}`;
                         }
                     })
                     .catch(error => {
-                        alert('❌ 網路通訊超時，請重新送出。');
-                        document.getElementById('loadingOverlay').style.display = 'none';
+                        alert('❌ 網路通訊異常或系統超時，請重新送出。');
+                        if (overlay) overlay.style.display = 'none';
                     });
-            }, 2000);
+            }, 1500);
         }
     </script>
 </body>
