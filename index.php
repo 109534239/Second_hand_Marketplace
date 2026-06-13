@@ -240,14 +240,14 @@ if (isset($_POST['action'])) {
             <form id="loginForm" action="index.php" method="POST" style="display:none;">
                 <input type="hidden" name="action" value="index">
                 <div class="input-group">
-                    <input type="text" name="account" placeholder="會員帳號" required>
+                    <input type="text" name="account" placeholder="帳號" required>
                 </div>
                 <div class="input-group">
                     <input type="password" name="password" placeholder="密碼" required>
                 </div>
-                <button type="submit" class="btn-submit-login">立即登入</button>
+                <button type="submit" class="btn-submit-login">登入會員</button>
                 <div class="auth-footer">
-                    還沒有帳號嗎？ <span class="link-register" onclick="switchTab('register')">立即加入會員</span>
+                    還沒有帳號嗎？ <span class="link-register" onclick="switchTab('register')">加入會員</span>
                 </div>
             </form>
 
@@ -270,9 +270,9 @@ if (isset($_POST['action'])) {
                         pattern="09[0-9]{8}" title="請輸入正確的 10 位手機號碼，例如: 0912345678" required>
                 </div>
 
-                <button type="submit" class="btn-submit-login">完成註冊</button>
+                <button type="submit" class="btn-submit-login">加入會員</button>
                 <div class="auth-footer">
-                    已經有帳號了？ <span class="link-register" onclick="switchTab('index')">返回登入</span>
+                    已經有帳號了？ <span class="link-register" onclick="switchTab('index')">登入會員</span>
                 </div>
             </form>
         </div>
