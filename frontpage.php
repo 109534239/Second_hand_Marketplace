@@ -31,62 +31,29 @@ try {
 
 if (empty($categories)) {
     $categories = [
-        ['category' => '時尚服飾與精品'],
-        ['category' => '3D數位與電子產品'],
-        ['category' => '遊戲與動漫週邊'],
-        ['category' => '書籍、音樂與影音娛樂'],
-        ['category' => '居家生活與家電'],
-        ['category' => '運動、戶外與交通工具'],
-        ['category' => '母嬰與兒童用品'],
-        ['category' => '收藏品、古董與藝術'],
+        ['id' => 1, 'category' => '時尚服飾與精品'],
+        ['id' => 2, 'category' => '3D數位與電子產品'],
+        ['id' => 3, 'category' => '遊戲與動漫週邊'],
+        ['id' => 4, 'category' => '書籍、音樂與影音娛樂'],
+        ['id' => 5, 'category' => '居家生活與家電'],
+        ['id' => 6, 'category' => '運動、戶外與交通工具'],
+        ['id' => 7, 'category' => '母嬰與兒童用品'],
+        ['id' => 8, 'category' => '收藏品、古董與藝術'],
     ];
 }
 
-// 1. 取得篩選參數
-$cat_id = isset($_GET['cat']) ? intval($_GET['cat']) : null;
-$search = isset($_GET['search']) ? trim($_GET['search']) : null;
-
-// 2. 建立基礎 SQL (將 c.category 分類名稱也選進來)
+// 💡 前端即時篩選優化：一次撈出全部商品，交由瀏覽器 JavaScript 來秒速過濾，不再重新整理網頁
 $sql = "SELECT i.*, c.category as category_name 
         FROM public.item i
         LEFT JOIN public.category c ON i.category_id = c.id
-        WHERE 1=1";
-
-$params = [];
-
-if ($cat_id) {
-    $sql .= " AND i.category_id = :cat_id";
-    $params[':cat_id'] = $cat_id;
-}
-
-if ($search) {
-    // 💡 終極優化：同時搜尋「商品名稱(i.name)」與「分類名稱(c.category)」
-    // 這樣一來，搜尋「嬰」或「嬰兒」，就會因為它屬於「母嬰與兒童用品」而被神奇地搜尋出來！
-    $sql .= " AND (i.name ILIKE :search OR c.category ILIKE :search)";
-    $params[':search'] = '%' . $search . '%';
-}
-
-$sql .= " ORDER BY i.id DESC";
+        ORDER BY i.id DESC";
 
 try {
-    $stmt_items = $db->prepare($sql);
-    $stmt_items->execute($params);
+    $stmt_items = $db->query($sql);
     $products = $stmt_items->fetchAll();
 } catch (PDOException $e) {
     error_log('Product query failed: ' . $e->getMessage());
     $products = [];
-}
-
-$current_cat_name = "";
-$current_cat_icon = "📂";
-if ($cat_id) {
-    foreach ($categories as $cat) {
-        if ($cat['id'] == $cat_id) {
-            $current_cat_name = $cat['category'];
-            $current_cat_icon = $iconMap[$current_cat_name] ?? '📂';
-            break;
-        }
-    }
 }
 ?>
 <!DOCTYPE html>
@@ -157,11 +124,12 @@ if ($cat_id) {
             background: transparent;
         }
 
+        /* 將原本按鈕樣式改為清除/重設按鈕 */
         .search-btn-main {
-            background: #ff385c;
+            background: #64748b;
             color: white;
             border: none;
-            padding: 0 30px;
+            padding: 0 20px;
             height: 50px;
             margin: 5px;
             border-radius: 12px;
@@ -171,7 +139,7 @@ if ($cat_id) {
         }
 
         .search-btn-main:hover {
-            background: #e31c5f;
+            background: #475569;
         }
 
         .section-title {
@@ -235,7 +203,6 @@ if ($cat_id) {
             padding: 20px;
         }
 
-        /* 💡 修正排版：標題與價格上下分開，避免揉在框裡被擠扁 */
         .product-title {
             font-size: 15.5px;
             font-weight: 600;
@@ -244,7 +211,7 @@ if ($cat_id) {
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
-            overflow: hidden;
+            -webkit-overflow: hidden;
             line-height: 1.45;
             height: 45px;
         }
@@ -259,7 +226,6 @@ if ($cat_id) {
             letter-spacing: -0.5px;
         }
 
-        /* 卡片底部小標籤區 */
         .product-footer {
             display: flex;
             justify-content: space-between;
@@ -269,7 +235,6 @@ if ($cat_id) {
             border-top: 1px solid #f1f5f9;
         }
 
-        /* 日系分類小標籤 */
         .product-cat-tag {
             background-color: #f1f5f9;
             color: #64748b;
@@ -287,50 +252,45 @@ if ($cat_id) {
         <div class="control-panel">
             <div class="main-search-wrapper">
                 <div class="search-combined-bar">
-                    <select id="category-dropdown" class="category-select-inline" onchange="handleCategoryChange(this)">
-                        <option value="frontpage.php" <?= !$cat_id ? 'selected' : '' ?>>📂 全部商品</option>
+                    <select id="category-dropdown" class="category-select-inline">
+                        <option value="all" data-icon="📂" data-name="全部商品">📂 全部商品</option>
                         <?php foreach ($categories as $category): ?>
-                            <option value="?cat=<?= $category['id'] ?>" <?= $cat_id == $category['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($category['category'], ENT_QUOTES, 'UTF-8') ?>
+                            <?php
+                            $c_name = $category['category'];
+                            $c_icon = $iconMap[$c_name] ?? '📂';
+                            ?>
+                            <option value="<?= $category['id'] ?>" data-icon="<?= $c_icon ?>" data-name="<?= htmlspecialchars($c_name) ?>">
+                                <?= $c_icon ?> <?= htmlspecialchars($c_name, ENT_QUOTES, 'UTF-8') ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
 
                     <div class="search-divider"></div>
 
-                    <input type="text" id="mainSearchInput" class="search-input-main"
-                        placeholder="搜尋二手寶物..."
-                        value="<?= htmlspecialchars($search ?? '') ?>"
-                        onkeydown="if(event.key==='Enter') executeSearch()">
+                    <input type="text" id="mainSearchInput" class="search-input-main" placeholder="搜尋二手寶物...">
 
-                    <button type="button" class="search-btn-main" onclick="executeSearch()">搜尋</button>
+                    <button type="button" id="resetBtn" class="search-btn-main">重設</button>
                 </div>
             </div>
         </div>
 
         <div class="section-title">
-            <h2>
-                <?php
-                if ($search) {
-                    echo "🔍 搜尋「" . htmlspecialchars($search) . "」的結果";
-                } elseif ($cat_id && !empty($current_cat_name)) {
-                    echo $current_cat_icon . " 正在查看「" . htmlspecialchars($current_cat_name) . "」";
-                } else {
-                    echo "🔥 最新上架的寶物";
-                }
-                ?>
-            </h2>
+            <h2 id="dynamicTitle">🔥 最新上架的寶物</h2>
             <div class="section-underline"></div>
         </div>
 
-        <div class="product-grid">
-            <?php if (empty($products)): ?>
-                <div style="grid-column: 1/-1; text-align: center; padding: 50px; color: #888;">
-                    <p>找不到對應的寶物，換個關鍵字試試看吧！</p>
-                </div>
-            <?php else: ?>
+        <div class="product-grid" id="productGrid">
+            <div id="noResults" style="grid-column: 1/-1; text-align: center; padding: 50px; color: #888; display: none;">
+                <p>找不到對應的寶物，換個關鍵字試試看吧！</p>
+            </div>
+
+            <?php if (!empty($products)): ?>
                 <?php foreach ($products as $p): ?>
-                    <a href="item.php?id=<?= $p['id'] ?>" class="product-card-link">
+                    <a href="item.php?id=<?= $p['id'] ?>"
+                        class="product-card-link product-item-card"
+                        data-catid="<?= $p['category_id'] ?>"
+                        data-title="<?= htmlspecialchars(mb_strtolower($p['name'])) ?>"
+                        data-catname="<?= htmlspecialchars(mb_strtolower($p['category_name'] ?? '未分類')) ?>">
                         <div class="product-card">
                             <img src="<?= !empty($p['img']) ? htmlspecialchars($p['img']) : 'https://via.placeholder.com/300x300/f1f5f9/64748b?text=無圖片' ?>"
                                 alt="商品圖片" class="product-img">
@@ -354,30 +314,78 @@ if ($cat_id) {
     </main>
 
     <script>
-        function handleCategoryChange(selectElement) {
-            const targetUrl = selectElement.value;
-            if (targetUrl !== "") {
-                window.location.href = targetUrl;
-            }
+        const searchInput = document.getElementById('mainSearchInput');
+        const categoryDropdown = document.getElementById('category-dropdown');
+        const resetBtn = document.getElementById('resetBtn');
+        const dynamicTitle = document.getElementById('dynamicTitle');
+        const noResults = document.getElementById('noResults');
+
+        // 核心動態篩選函式
+        function filterProducts() {
+            const keyword = searchInput.value.trim().toLowerCase();
+            const selectedCatId = categoryDropdown.value; // 'all' 或是 具體數字ID
+            let visibleCount = 0;
+
+            // 抓取頁面上現有的所有商品卡片
+            const productCards = document.querySelectorAll('.product-item-card');
+
+            productCards.forEach(card => {
+                const title = card.dataset.title;
+                const catName = card.dataset.catname;
+                const cardCatId = card.dataset.catid;
+
+                // 條件一：關鍵字必須滿足「商品名稱包含關鍵字」或是「分類包含關鍵字」
+                const matchesKeyword = keyword === '' || title.includes(keyword) || catName.includes(keyword);
+
+                // 條件二：分類必須滿足「全部商品」或是「卡片的分類 ID 符合下拉選單選中的 ID」
+                const matchesCategory = selectedCatId === 'all' || cardCatId === selectedCatId;
+
+                // 雙重符合則顯示，否則隱藏
+                if (matchesKeyword && matchesCategory) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // 控制「找不到寶物」的提示顯示狀態
+            noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+
+            // 動態更新大標題文字與圖示
+            updateTitleText(keyword);
         }
 
-        function executeSearch() {
-            const keyword = document.getElementById('mainSearchInput').value.trim();
-            const urlParams = new URLSearchParams(window.location.search);
-            const cat = urlParams.get('cat');
-
-            let targetUrl = "frontpage.php?";
-            if (cat) {
-                targetUrl += "cat=" + cat + "&";
-            }
-
-            if (keyword !== "") {
-                targetUrl += "search=" + encodeURIComponent(keyword);
-                window.location.href = targetUrl;
+        // 動態更新大標題的輔助函式
+        function updateTitleText(keyword) {
+            if (keyword !== '') {
+                dynamicTitle.innerText = `🔍 搜尋「${keyword}」的結果`;
             } else {
-                window.location.href = cat ? "frontpage.php?cat=" + cat : "frontpage.php";
+                // 獲取目前選中的 option 的額外 data 屬性
+                const selectedOption = categoryDropdown.options[categoryDropdown.selectedIndex];
+                const catName = selectedOption.dataset.name;
+                const catIcon = selectedOption.dataset.icon;
+
+                if (categoryDropdown.value === 'all') {
+                    dynamicTitle.innerText = `🔥 最新上架的寶物`;
+                } else {
+                    dynamicTitle.innerText = `${catIcon} 正在查看「${catName}」`;
+                }
             }
         }
+
+        // 監聽輸入框打字事件（即時觸發）
+        searchInput.addEventListener('input', filterProducts);
+
+        // 監聽下拉選單切換事件
+        categoryDropdown.addEventListener('change', filterProducts);
+
+        // 重設按鈕一鍵清空
+        resetBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            categoryDropdown.value = 'all';
+            filterProducts();
+        });
     </script>
 </body>
 
