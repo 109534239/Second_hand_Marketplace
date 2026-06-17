@@ -50,7 +50,7 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : null;
 $sql = "SELECT i.*, c.category as category_name 
         FROM public.item i
         LEFT JOIN public.category c ON i.category_id = c.id
-        WHERE 1=1";
+        WHERE 1=1 AND i.inventory > 0";
 
 $params = [];
 
