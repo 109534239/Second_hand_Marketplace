@@ -390,7 +390,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div id="cod_panel">
-                    <button type="submit" class="btn-pay">確認下單，貨到付款</button>
+                    <button type="submit" class="btn-pay">付款</button>
                 </div>
 
                 <div id="credit_panel" class="credit-card-panel">
@@ -430,7 +430,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
-                    <button type="button" class="btn-pay btn-credit" onclick="handleCreditCardPay()">確認安全付款 $<?= number_format($order['sum']) ?></button>
+                    <button type="button" class="btn-pay btn-credit" onclick="handleCreditCardPay()">付款 $<?= number_format($order['sum']) ?></button>
                 </div>
 
             </form>
