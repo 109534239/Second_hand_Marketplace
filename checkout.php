@@ -261,6 +261,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             gap: 15px;
         }
 
+        /* 有效日期的兩個下拉選單排在一起 */
+        .expiry-select-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
         .btn-pay {
             width: 100%;
             padding: 14px;
@@ -317,13 +324,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -388,7 +390,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div id="cod_panel">
-                    <button type="submit" class="btn-pay">付款</button>
+                    <button type="submit" class="btn-pay">確認下單，貨到付款</button>
                 </div>
 
                 <div id="credit_panel" class="credit-card-panel">
@@ -406,7 +408,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="input-row" style="margin-bottom:15px;">
                         <div>
                             <label class="form-label">有效日期</label>
-                            <input type="text" id="card_expiry" class="form-control" maxlength="5" placeholder="MM/YY" oninput="formatExpiry(this)" onblur="validateExpiry(this)">
+                            <div class="expiry-select-group">
+                                <select id="expiry_month" class="form-control" onchange="syncExpiryDisplay()">
+                                    <option value="">月</option>
+                                    <?php for ($m = 1; $m <= 12; $m++): ?>
+                                        <?php $monthStr = str_pad($m, 2, "0", STR_PAD_LEFT); ?>
+                                        <option value="<?= $monthStr ?>"><?= $monthStr ?> 月</option>
+                                    <?php endfor; ?>
+                                </select>
+                                <select id="expiry_year" class="form-control" onchange="syncExpiryDisplay()">
+                                    <option value="">年</option>
+                                    <?php for ($y = 24; $y <= 34; $y++): ?>
+                                        <option value="<?= $y ?>">20<?= $y ?> 年</option>
+                                    <?php endfor; ?>
+                                </select>
+                            </div>
                         </div>
                         <div>
                             <label class="form-label">安全碼 (CVC)</label>
@@ -414,7 +430,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
-                    <button type="button" class="btn-pay btn-credit" onclick="handleCreditCardPay()">付款 $<?= number_format($order['sum']) ?></button>
+                    <button type="button" class="btn-pay btn-credit" onclick="handleCreditCardPay()">確認安全付款 $<?= number_format($order['sum']) ?></button>
                 </div>
 
             </form>
@@ -488,21 +504,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const codPanel = document.getElementById('cod_panel');
             const creditPanel = document.getElementById('credit_panel');
 
-            // 💡 移除原本對 cc_name 的引用
-            const ccFields = [document.getElementById('cc_num'), document.getElementById('card_expiry'), document.getElementById('cc_cvc')];
+            // 💡 包含新的月份與年份下拉選單控制
+            const ccFields = [
+                document.getElementById('cc_num'), 
+                document.getElementById('expiry_month'), 
+                document.getElementById('expiry_year'), 
+                document.getElementById('cc_cvc')
+            ];
 
             if (method === 'credit_card') {
                 codPanel.style.display = 'none';
                 creditPanel.style.display = 'block';
-                ccFields.forEach(f => {
-                    if (f) f.required = true;
-                });
+                ccFields.forEach(f => { if (f) f.required = true; });
             } else {
                 codPanel.style.display = 'block';
                 creditPanel.style.display = 'none';
-                ccFields.forEach(f => {
-                    if (f) f.required = false;
-                });
+                ccFields.forEach(f => { if (f) f.required = false; });
             }
         }
 
@@ -516,19 +533,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             document.getElementById('mirror_number').innerText = input.value || '•••• •••• •••• ••••';
         }
 
-        function formatExpiry(input) {
-            let code = input.value.replace(/\D/g, '');
-            input.value = code.length > 2 ? code.substring(0, 2) + '/' + code.substring(2, 4) : code;
-            document.getElementById('mirror_date').innerText = input.value || 'MM/YY';
-        }
-
-        function validateExpiry(input) {
-            let val = input.value;
-            if (val === '') return;
-            if (val.length < 5 || !val.includes('/')) {
-                alert('❌ 有效日期格式不正確，請輸入 MM/YY（例如 05/26）');
-                input.value = '';
-                return;
+        // 💡 新增：同步更新黑色卡片圖案上的 MM/YY
+        function syncExpiryDisplay() {
+            const month = document.getElementById('expiry_month').value;
+            const year = document.getElementById('expiry_year').value;
+            
+            if (month && year) {
+                document.getElementById('mirror_date').innerText = `${month}/${year}`;
+            } else {
+                document.getElementById('mirror_date').innerText = 'MM/YY';
             }
         }
 
@@ -552,13 +565,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             const elNum = document.getElementById('cc_num');
-            const elExpiry = document.getElementById('card_expiry');
+            const elMonth = document.getElementById('expiry_month');
+            const elYear = document.getElementById('expiry_year');
             const elCvc = document.getElementById('cc_cvc');
 
-            // 💡 驗證條件同步移除了 elName (持卡人姓名)
-            if (!elNum || !elExpiry || !elCvc ||
-                !elNum.value.trim() || !elExpiry.value.trim() || !elCvc.value.trim()) {
-                alert('❌ 請完整填寫所有的信用卡欄位資訊！');
+            // 💡 驗證卡號、月份、年份與安全碼是否皆已填寫/選擇
+            if (!elNum || !elMonth || !elYear || !elCvc ||
+                !elNum.value.trim() || !elMonth.value || !elYear.value || !elCvc.value.trim()) {
+                alert('❌ 請完整填寫並選取所有的信用卡欄位資訊！');
                 return;
             }
 
